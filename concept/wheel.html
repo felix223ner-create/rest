@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a0c10">
+<title>TradeUp — концепт выпадения приза на колесе удачи</title>
+<style>
+/* Концепт выпадения приза после крутки колеса удачи. Один файл: стили,
+   разметка, скрипт и картинки (data URI) внутри — открывается и с диска.
+   Колесо, секторы, шансы и палитры — как в игре (js/data.js, css/style.css).
+   --k — множитель длительности анимаций (кнопка «Замедлить»). */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background: #050608;
+  color: #e9ecf2;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+img { display: block; }
+.mono { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+
+/* ---------------- Темы игры ---------------- */
+
+.screen[data-theme="dark"] {
+  --bg: #0a0c10; --card: #12161d; --card2: #0d1015; --border: #222a36;
+  --text: #f2f4f8; --muted: #98a2b3; --gold: #e9b640; --gold-soft: rgba(233, 182, 64, 0.14);
+  --gold-grad: linear-gradient(135deg, #f7d879 0%, #e9b640 45%, #c98f1b 100%);
+  --gold-border: rgba(233, 182, 64, 0.32); --up: #2fbe6e; --down: #f0524f;
+  --primary-text: #221703; --val: #f5c451;
+  --glow: radial-gradient(900px 420px at 50% -8%, rgba(233, 182, 64, 0.08), transparent 60%);
+}
+.screen[data-theme="light"] {
+  --bg: #f5f2ea; --card: #ffffff; --card2: #f7f4ec; --border: #e6dfd0;
+  --text: #1c1913; --muted: #645e50; --gold: #8f6a0e; --gold-soft: rgba(185, 138, 21, 0.12);
+  --gold-grad: linear-gradient(135deg, #ecd28a 0%, #d3a52f 50%, #b98a15 100%);
+  --gold-border: rgba(185, 138, 21, 0.3); --up: #1d9e5a; --down: #d64545;
+  --primary-text: #221703; --val: #a27509;
+  --glow: radial-gradient(900px 420px at 50% -8%, rgba(201, 143, 27, 0.1), transparent 60%);
+}
+.screen[data-theme="midnight"] {
+  --bg: #070b16; --card: #0d1322; --card2: #0a0f1c; --border: #1e2a45;
+  --text: #e8edf7; --muted: #8b96b3; --gold: #e9b640; --gold-soft: rgba(233, 182, 64, 0.14);
+  --gold-grad: linear-gradient(135deg, #f7d879 0%, #e9b640 45%, #c98f1b 100%);
+  --gold-border: rgba(233, 182, 64, 0.32); --up: #2fbe6e; --down: #f0524f;
+  --primary-text: #221703; --val: #f5c451;
+  --glow: radial-gradient(900px 420px at 50% -8%, rgba(77, 163, 255, 0.1), transparent 60%);
+}
+
+/* ---------------- Сцена: панель демо + телефон ---------------- */
+
+.stage {
+  height: 100vh;
+  min-height: 720px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 56px;
+  padding: 28px;
+  background:
+    radial-gradient(900px 520px at 72% 8%, rgba(233, 182, 64, 0.1), transparent 60%),
+    radial-gradient(700px 600px at 8% 92%, rgba(77, 163, 255, 0.06), transparent 60%),
+    #050608;
+}
+.demo { width: 320px; flex: none; max-height: 100%; overflow-y: auto; scrollbar-width: none; padding: 4px 0; }
+.demo::-webkit-scrollbar { display: none; }
+.demo-brand { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #e9b640; }
+.demo-brand img { width: 30px; height: 30px; border-radius: 9px; background: #12161d; padding: 4px; border: 1px solid #222a36; }
+.demo h1 { font-size: 32px; line-height: 1.08; letter-spacing: -0.025em; margin: 16px 0 10px; }
+.demo > p { color: #98a2b3; font-size: 14px; line-height: 1.55; }
+.dctl { display: flex; flex-direction: column; gap: 16px; margin-top: 22px; }
+.dgrp > span { display: block; font-size: 11px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted, #6f7a8c); margin-bottom: 8px; }
+.drow { display: flex; flex-wrap: wrap; gap: 8px; }
+.dbtn2 { padding: 10px 14px; border-radius: 12px; background: var(--card, #12161d); border: 1px solid var(--border, #222a36); color: var(--text, #e9ecf2); font-size: 13px; font-weight: 700; transition: transform 0.12s, border-color 0.2s, color 0.2s; }
+.dbtn2:hover { border-color: rgba(233, 182, 64, 0.45); }
+.dbtn2:active { transform: scale(0.95); }
+.dbtn2.gold { background: linear-gradient(135deg, #f7d879, #e9b640 45%, #c98f1b); color: #221703; border-color: transparent; }
+.dbtn2.on, .dbtn2[aria-pressed="true"] { border-color: #e9b640; color: #e9b640; }
+.notes { margin-top: 24px; padding-top: 18px; border-top: 1px solid #1b212b; }
+.notes b { font-size: 13px; }
+.notes ul { list-style: none; margin-top: 10px; display: flex; flex-direction: column; gap: 7px; }
+.notes li { position: relative; padding-left: 16px; font-size: 12.5px; line-height: 1.45; color: #aab3c2; }
+.notes li::before { content: ""; position: absolute; left: 2px; top: 7px; width: 6px; height: 6px; border-radius: 50%; background: #e9b640; }
+
+.phone {
+  position: relative;
+  flex: none;
+  width: 414px;
+  height: min(868px, calc(100vh - 56px));
+  min-height: 660px;
+  padding: 12px;
+  border-radius: 58px;
+  background: linear-gradient(145deg, #2c313a, #0d0f13 42%, #1c2027);
+  box-shadow: inset 0 0 0 1.5px #3b414c, 0 0 0 1px #000, 0 50px 90px -30px rgba(0, 0, 0, 0.9), 0 0 120px -40px rgba(233, 182, 64, 0.25);
+}
+.phone::before { content: ""; position: absolute; z-index: 90; top: 23px; left: 50%; width: 116px; height: 33px; margin-left: -58px; border-radius: 20px; background: #000; }
+.screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 46px;
+  overflow: hidden;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  background: var(--glow), var(--bg);
+  color: var(--text);
+  font-size: 15px;
+  --k: 1;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --spring: cubic-bezier(0.34, 1.5, 0.55, 1);
+}
+.screen::after { content: ""; position: absolute; z-index: 80; left: 50%; bottom: 8px; width: 134px; height: 5px; margin-left: -67px; border-radius: 99px; background: var(--text); opacity: 0.55; pointer-events: none; }
+.statusbar { flex: none; height: 54px; display: flex; align-items: center; justify-content: space-between; padding: 8px 30px 0 38px; font-size: 15px; font-weight: 700; }
+.statusbar svg { height: 12px; width: auto; fill: currentColor; }
+.sb-r { display: flex; gap: 6px; align-items: center; }
+
+.topbar { flex: none; height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 14px; }
+.icon-btn { flex: none; width: 40px; height: 40px; border-radius: 13px; display: grid; place-items: center; background: var(--card); border: 1px solid var(--border); transition: transform 0.14s var(--ease); }
+.icon-btn:active { transform: scale(0.9); }
+.icon-btn svg { width: 20px; height: 20px; }
+.tt { flex: 1; min-width: 0; text-align: center; line-height: 1.2; }
+.tt b { display: block; font-size: 17px; font-weight: 800; }
+.tt i { display: block; font-size: 12px; color: var(--muted); }
+.cap { flex: none; position: relative; padding: 5px 10px; border-radius: 10px; font-size: 13px; font-weight: 850; color: var(--gold); background: var(--gold-soft); border: 1px solid rgba(201, 143, 27, 0.3); transition: box-shadow 0.4s; }
+.cap.hit { animation: capHit calc(0.7s * var(--k)) var(--spring); }
+@keyframes capHit { 25% { transform: scale(1.22); box-shadow: 0 0 0 6px var(--gold-soft), 0 0 22px rgba(233, 182, 64, 0.6); } 60% { transform: scale(0.96); } }
+
+/* ---------------- Экран колеса ---------------- */
+
+.sbody { position: relative; flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 4px 14px 26px; overflow-y: auto; scrollbar-width: none; }
+.sbody::-webkit-scrollbar { display: none; }
+.sw { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; flex: none; animation: fadeUp 0.42s var(--ease) backwards; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } }
+.ssw { min-width: 0; min-height: 62px; display: grid; grid-template-columns: auto minmax(0, 1fr) 24px; align-items: center; gap: 8px; padding: 9px 8px 9px 10px; border: 1px solid var(--border); border-radius: 16px; background: var(--card); color: var(--muted); text-align: left; transition: border-color 0.2s, background 0.2s, transform 0.14s; }
+.ssw:active { transform: scale(0.985); }
+.ssw-ico { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; color: #c6cdda; background: linear-gradient(145deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.03)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09); }
+.ssw-ico svg { width: 19px; height: 19px; }
+.ssw.vip .ssw-ico { color: #f0cc66; background: linear-gradient(145deg, rgba(255, 218, 104, 0.22), rgba(255, 218, 104, 0.05)); box-shadow: inset 0 0 0 1px rgba(255, 218, 104, 0.24); }
+.ssw-c { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.ssw-c b { font-size: 13px; font-weight: 850; color: var(--text); white-space: nowrap; }
+.ssw.vip .ssw-c b { color: var(--gold); }
+.ssw-c i { padding: 2.5px 8px; font-size: 9.5px; font-style: normal; font-weight: 750; color: var(--muted); border: 1px solid var(--border); border-radius: 8px; white-space: nowrap; }
+.ssw-a { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 8px; color: var(--muted); background: var(--card2); border: 1px solid var(--border); font-size: 19px; font-weight: 300; line-height: 1; }
+.ssw.on { border-color: rgba(233, 182, 64, 0.7); background: radial-gradient(130px 58px at 100% 0%, var(--gold-soft), transparent 72%), var(--card); }
+.ssw.on .ssw-c b { color: var(--gold); }
+.ssw.on .ssw-a { color: var(--primary-text); border-color: transparent; background: var(--gold-grad); }
+.ssw.on .ssw-c i { color: var(--gold); border-color: var(--gold-border); background: var(--gold-soft); }
+
+.wstage { position: relative; width: min(100%, 50vh, 400px); aspect-ratio: 1; flex: none; margin-top: auto; transition: transform calc(0.6s * var(--k)) var(--ease), filter calc(0.6s * var(--k)); animation: stageIn calc(0.62s * var(--k)) cubic-bezier(0.2, 0.78, 0.28, 1) backwards; }
+@keyframes stageIn { 0% { opacity: 0; transform: scale(0.84) rotate(-16deg); } 58% { opacity: 1; transform: scale(1.022) rotate(2.4deg); } }
+.sbody.deep .wstage { transform: scale(0.93); filter: brightness(0.55) saturate(0.7); }
+.wwheel { position: absolute; inset: 0; }
+.wstage.is-winding .wwheel { transform: scale(0.982); transition: transform calc(0.34s * var(--k)) cubic-bezier(0.4, 0, 0.6, 1); }
+.wstage.is-landed:not(.is-jackpot) .wwheel { animation: land calc(0.52s * var(--k)) cubic-bezier(0.2, 0.8, 0.3, 1); }
+@keyframes land { 0% { transform: scale(1.035); } 38% { transform: scale(0.99); } 74% { transform: scale(1.008); } }
+.wframe { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, transparent 60%, rgba(0, 0, 0, 0.55) 64%, transparent 66%), conic-gradient(from 210deg, #4a5162, #1b1f28 18%, #3d4453 36%, #171a22 55%, #4a5162 74%, #1d2029 88%, #4a5162); box-shadow: 0 18px 34px -8px rgba(0, 0, 0, 0.7), inset 0 2px 1px rgba(255, 255, 255, 0.16), inset 0 -3px 6px rgba(0, 0, 0, 0.55); }
+.vip .wframe { background: radial-gradient(circle, transparent 60%, rgba(60, 36, 4, 0.6) 64%, transparent 66%), conic-gradient(from 210deg, #fff0a8, #a8700f 16%, #ffe38a 34%, #8c550a 52%, #f6d372 70%, #9b6410 86%, #fff0a8); box-shadow: 0 18px 34px -8px rgba(0, 0, 0, 0.65), 0 0 26px -4px rgba(233, 182, 64, 0.35), inset 0 2px 1px rgba(255, 255, 255, 0.45), inset 0 -3px 6px rgba(80, 48, 4, 0.6); }
+.wbulbs { position: absolute; inset: 0; }
+.wbulbs i { position: absolute; inset: 0; transform: rotate(calc(var(--i) * 15deg)); }
+.wbulbs i::before, .wbulbs i::after { content: ""; position: absolute; top: 1.45%; left: 50%; width: 2.7%; height: 2.7%; margin-left: -1.35%; border-radius: 50%; }
+.wbulbs i::before { background: radial-gradient(circle at 35% 35%, #7e8796, #2a2f3a 70%); }
+.wbulbs i::after { background: radial-gradient(circle at 38% 36%, #fff, #e8eef8 38%, #a9c1e8 75%); box-shadow: 0 0 5px 1.5px rgba(200, 220, 255, 0.85), 0 0 12px 3px rgba(160, 190, 255, 0.35); opacity: 0.2; }
+.vip .wbulbs i::before { background: radial-gradient(circle at 35% 35%, #b98a2c, #5a3b08 70%); }
+.vip .wbulbs i::after { background: radial-gradient(circle at 38% 36%, #fff, #fff1b8 36%, #f3b73a 78%); box-shadow: 0 0 5px 1.5px rgba(255, 214, 110, 0.9), 0 0 13px 3px rgba(255, 190, 60, 0.4); }
+.wbulbs i:nth-child(odd)::after { animation: bulbIdle 2.4s ease-in-out infinite; }
+.wbulbs i:nth-child(even)::after { animation: bulbIdle 2.4s ease-in-out -1.2s infinite; }
+@keyframes bulbIdle { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.95; } }
+.is-spinning .wbulbs i::after { animation: bulbChase calc(0.64s * var(--k)) linear infinite; animation-delay: calc(var(--i) * -0.08s * var(--k)); }
+.is-spinning.is-slowing .wbulbs i::after { animation-duration: calc(1.28s * var(--k)); animation-delay: calc(var(--i) * -0.16s * var(--k)); }
+@keyframes bulbChase { 0%, 22% { opacity: 1; } 40%, 100% { opacity: 0.15; } }
+.is-landed .wbulbs i::after { animation: bulbWin calc(0.3s * var(--k)) steps(1) 7, bulbIdle 2.4s ease-in-out 2.1s infinite; }
+.is-landed .wbulbs i:nth-child(even)::after { animation-delay: calc(0.15s * var(--k)), 0.9s; }
+.is-jackpot .wbulbs i::after { animation: bulbWin 0.22s steps(1) infinite; }
+.is-jackpot .wbulbs i:nth-child(even)::after { animation-delay: 0.11s; }
+@keyframes bulbWin { 0% { opacity: 1; } 50% { opacity: 0.15; } }
+.wrays { position: absolute; inset: -11%; border-radius: 50%; opacity: 0; pointer-events: none; background: repeating-conic-gradient(from -6deg, rgba(233, 182, 64, 0.18) 0deg 4deg, transparent 4deg 29deg); -webkit-mask: radial-gradient(circle, transparent 38%, #000 51%, transparent 78%); mask: radial-gradient(circle, transparent 38%, #000 51%, transparent 78%); transition: opacity 0.6s; }
+.vip .wrays { opacity: 0.4; animation: spinR 26s linear infinite; }
+.is-jackpot .wrays { opacity: 0.75; animation-duration: 11s; }
+@keyframes spinR { to { transform: rotate(360deg); } }
+
+#wsvg { position: absolute; left: 5.5%; top: 5.5%; width: 89%; height: 89%; display: block; overflow: hidden; }
+#disc { transform-box: view-box; transform-origin: 100px 100px; }
+.grain { fill: #fff; opacity: 0.3; pointer-events: none; }
+.vip .grain { opacity: 0.52; }
+.rim { fill: none; stroke: rgba(40, 48, 64, 0.95); stroke-width: 3.6; }
+.vip .rim { stroke: url(#goldEdge); stroke-width: 4; }
+.oedge { fill: none; stroke: rgba(40, 48, 64, 0.95); stroke-width: 1.4; }
+.vip .oedge { stroke: url(#goldEdge); stroke-width: 1.5; opacity: 0.92; }
+.iedge { fill: none; stroke: rgba(255, 255, 255, 0.06); stroke-width: 0.75; }
+.vip .iedge { stroke: rgba(255, 239, 163, 0.34); }
+.cring { fill: #2a2e3a; stroke: #4a5160; stroke-width: 1; }
+.vip .cring { fill: #9d650f; stroke: #ffe384; stroke-width: 1.15; }
+.core { fill: url(#coreFree); stroke: rgba(160, 170, 190, 0.6); stroke-width: 1.5; }
+.vip .core { fill: url(#coreVip); stroke: rgba(255, 224, 132, 0.85); }
+.cicon { color: #c4c8d2; }
+.vip .cicon { color: #5a3b08; }
+.sic { transition: opacity calc(0.35s * var(--k)); }
+.sic.gone { opacity: 0; transition: none; }
+.wdim { fill: rgba(4, 6, 10, 0.62); fill-rule: evenodd; animation: fadeIn calc(0.4s * var(--k)) ease-out both; }
+.wglow { fill: rgba(255, 244, 200, 0.16); stroke: #ffe384; stroke-width: 2.4; stroke-linejoin: round; animation: wglow calc(0.46s * var(--k)) ease-in-out 3 alternate both; }
+#win.miss .wdim { fill: rgba(4, 6, 10, 0.4); }
+#win.miss .wglow { fill: rgba(200, 210, 230, 0.08); stroke: rgba(200, 210, 230, 0.7); }
+@keyframes wglow { from { opacity: 0.35; } }
+@keyframes fadeIn { from { opacity: 0; } }
+
+.whub { position: absolute; left: 50%; top: 50%; z-index: 2; width: 20%; height: 20%; border-radius: 50%; transform: translate(-50%, -50%); }
+.whub::before, .whub::after { content: ""; position: absolute; inset: -4%; border-radius: 50%; border: 2px solid rgba(214, 222, 236, 0.6); opacity: 0; pointer-events: none; }
+.vip .whub::before, .vip .whub::after { border-color: rgba(255, 227, 132, 0.7); }
+.is-ready .whub::before { animation: hubRing 2.2s ease-out infinite; }
+.is-ready .whub::after { animation: hubRing 2.2s ease-out 1.1s infinite; }
+@keyframes hubRing { 0% { opacity: 0.9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.7); } }
+.whub:active { transform: translate(-50%, -50%) scale(0.9); }
+.whub:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+
+.wptr { position: absolute; top: -7px; left: 50%; z-index: 4; width: 40px; height: 51px; transform: translateX(-50%); transform-origin: 50% 34%; }
+.wptr svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.p-shadow { fill: rgba(0, 0, 0, 0.55); filter: blur(2px); }
+.p-body { fill: url(#ptrBody); stroke: rgba(10, 12, 18, 0.85); stroke-width: 1.4; }
+.p-s1 { stop-color: #fff; } .p-s2 { stop-color: #c9d0db; } .p-s3 { stop-color: #6c7586; }
+.vip .p-s1 { stop-color: #fff3b8; } .vip .p-s2 { stop-color: #f0bd45; } .vip .p-s3 { stop-color: #8c550a; }
+.p-shine { fill: none; stroke: rgba(255, 255, 255, 0.75); stroke-width: 1.6; stroke-linecap: round; }
+.p-gem { fill: url(#ptrGem); stroke: rgba(90, 55, 6, 0.8); stroke-width: 1; }
+.vip .p-gem { fill: #1b1f29; stroke: #ffe384; }
+.p-hi { fill: rgba(255, 255, 255, 0.85); }
+.is-spinning .p-hi, .is-landed .p-hi { animation: glint 0.9s ease-in-out infinite alternate; }
+@keyframes glint { from { opacity: 0.4; } }
+.wptr.tick { animation: ptrTick calc(0.36s * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1); }
+@keyframes ptrTick { 26% { transform: translateX(-50%) rotate(-21deg); } 64% { transform: translateX(-50%) rotate(8deg); } }
+.wptr.windup { animation: ptrWind calc(0.36s * var(--k)) cubic-bezier(0.42, 0, 0.72, 0.58) forwards; }
+@keyframes ptrWind { to { transform: translateX(-50%) rotate(-24deg); } }
+.wptr.release { animation: ptrRel calc(0.4s * var(--k)) cubic-bezier(0.18, 0.9, 0.3, 1.18); }
+@keyframes ptrRel { 0% { transform: translateX(-50%) rotate(-24deg); } 34% { transform: translateX(-50%) rotate(7deg); } 68% { transform: translateX(-50%) rotate(-4deg); } }
+.wptr.catch { animation: ptrCatch calc(0.6s * var(--k)) cubic-bezier(0.2, 0.9, 0.3, 1); }
+@keyframes ptrCatch { 20% { transform: translateX(-50%) translateY(3px) scale(1.12, 0.9); } 55% { transform: translateX(-50%) translateY(-3px) scale(0.96, 1.05); } }
+
+.wact { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 6px; flex: none; margin-bottom: auto; animation: fadeUp 0.46s var(--ease) 0.11s backwards; }
+.wnote { font-size: 10.5px; color: var(--muted); }
+.wgo { width: 100%; min-height: 64px; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 9px 14px 9px 12px; border-radius: 15px; text-align: left; color: #edf1f7; border: 1px solid #4a5264; background: linear-gradient(112deg, #4c5a70 0%, #30394b 50%, #202735 100%); box-shadow: 0 10px 22px rgba(0, 0, 0, 0.28), inset 0 1px rgba(255, 255, 255, 0.16); transition: transform 0.16s var(--ease), filter 0.16s, opacity 0.2s; }
+.vip .wgo { color: #1b1304; border-color: #ffdc69; background: linear-gradient(104deg, #ffdc70 0%, #f6c247 44%, #d79619 100%); box-shadow: 0 10px 22px rgba(183, 119, 8, 0.23), inset 0 1px rgba(255, 255, 255, 0.52); }
+.wgo:active { transform: translateY(2px) scale(0.986); }
+.wgo:disabled { opacity: 0.62; filter: saturate(0.55); cursor: default; }
+.wgo-w { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 50%; color: #d7deea; background: rgba(214, 222, 236, 0.12); box-shadow: inset 0 0 0 1px rgba(224, 232, 244, 0.25); }
+.vip .wgo-w { color: #4c3507; background: rgba(255, 246, 188, 0.32); box-shadow: inset 0 0 0 1px rgba(92, 55, 2, 0.18); }
+.wgo-w svg { width: 33px; height: 33px; }
+.wgo:disabled .wgo-w svg { animation: spinR 1.2s linear infinite; }
+.wgo-c b { display: block; font-size: 17px; font-weight: 900; letter-spacing: 0.02em; text-transform: uppercase; }
+.wgo-c i { display: block; font-size: 11px; font-style: normal; opacity: 0.72; }
+.wgo-l { padding: 5px 8px; border-radius: 8px; font-size: 10.5px; font-weight: 800; color: rgba(230, 236, 247, 0.82); background: rgba(5, 9, 16, 0.28); }
+.vip .wgo-l { color: rgba(55, 35, 0, 0.8); background: rgba(65, 43, 4, 0.2); }
+
+/* ---------------- Выпадение приза ---------------- */
+
+.rv { position: absolute; inset: 0; z-index: 50; --mx: 50%; --my: 40%; }
+.rv-bg { position: absolute; inset: 0; opacity: 0; background: radial-gradient(420px 420px at var(--mx) var(--my), rgba(233, 182, 64, 0.2), transparent 70%), rgba(3, 4, 8, 0.72); transition: opacity calc(0.5s * var(--k)); }
+.rv.miss .rv-bg { background: rgba(3, 4, 8, 0.66); }
+.rv.on .rv-bg { opacity: 1; }
+.rv-rays { position: absolute; left: var(--mx); top: var(--my); width: 560px; height: 560px; margin: -280px 0 0 -280px; opacity: 0; pointer-events: none; transform: scale(0.2); transition: opacity calc(0.5s * var(--k)), transform calc(0.9s * var(--k)) var(--ease); }
+.rv-rays i { position: absolute; inset: 0; border-radius: 50%; background: repeating-conic-gradient(from 0deg, rgba(255, 214, 110, 0.34) 0deg 5deg, transparent 5deg 22.5deg); -webkit-mask: radial-gradient(circle, #000 12%, rgba(0, 0, 0, 0.5) 38%, transparent 68%); mask: radial-gradient(circle, #000 12%, rgba(0, 0, 0, 0.5) 38%, transparent 68%); animation: spinR 20s linear infinite; }
+.rv-rays i + i { display: none; background: repeating-conic-gradient(from 11deg, rgba(255, 244, 200, 0.22) 0deg 3deg, transparent 3deg 15deg); animation-direction: reverse; animation-duration: 13s; }
+.rv.hit .rv-rays { opacity: 1; transform: scale(1); }
+.rv.jack .rv-rays i { animation-duration: 9s; }
+.rv.jack .rv-rays i + i { display: block; }
+.rv.closing .rv-rays { opacity: 0; transform: scale(0.6); }
+.rv-flash, .rv-ring { position: absolute; left: var(--mx); top: var(--my); z-index: 3; border-radius: 50%; pointer-events: none; opacity: 0; }
+.rv-flash { width: 320px; height: 320px; margin: -160px 0 0 -160px; background: radial-gradient(circle, rgba(255, 255, 255, 0.95), rgba(255, 220, 120, 0.55) 30%, transparent 64%); }
+.rv.hit .rv-flash { animation: flash calc(0.6s * var(--k)) ease-out; }
+@keyframes flash { 0% { opacity: 0; transform: scale(0.2); } 18% { opacity: 1; } 100% { opacity: 0; transform: scale(1.5); } }
+.rv-ring { width: 120px; height: 120px; margin: -60px 0 0 -60px; border: 3px solid #ffd974; box-shadow: 0 0 18px rgba(255, 210, 90, 0.7), inset 0 0 18px rgba(255, 210, 90, 0.5); }
+.rv-ring.r2 { border-width: 1.5px; }
+.rv.hit .rv-ring { animation: ring calc(0.75s * var(--k)) cubic-bezier(0.1, 0.7, 0.3, 1); }
+.rv.hit .rv-ring.r2 { animation-delay: calc(0.12s * var(--k)); animation-duration: calc(0.95s * var(--k)); }
+@keyframes ring { 0% { opacity: 1; transform: scale(0.6); } 100% { opacity: 0; transform: scale(3.4); } }
+.rv-wrap { position: absolute; inset: 0; display: grid; place-items: center; padding: 60px 20px 24px; pointer-events: none; }
+
+.rv-card {
+  --d0: 0;
+  position: relative;
+  z-index: 2;
+  width: min(100%, 332px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 64px 18px 16px;
+  border: 1.5px solid rgba(233, 182, 64, 0.46);
+  border-radius: 26px;
+  background: radial-gradient(130% 46% at 50% 0%, var(--gold-soft), transparent 62%), var(--card);
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.55), 0 0 44px rgba(233, 182, 64, 0.14);
+  pointer-events: auto;
+  visibility: hidden;
+  clip-path: circle(0 at 50% 0);
+}
+.rv-card.open { visibility: visible; clip-path: circle(170% at 50% 0); transition: clip-path calc(0.7s * var(--k)) cubic-bezier(0.3, 0.7, 0.2, 1); }
+.rv-card.drop { visibility: visible; clip-path: none; animation: cardDrop calc(0.75s * var(--k)) cubic-bezier(0.3, 0.9, 0.3, 1) both; }
+@keyframes cardDrop { 0% { opacity: 0; transform: translateY(-80px) rotate(-2deg); } 55% { opacity: 1; transform: translateY(8px) scale(1.01, 0.97); } 78% { transform: translateY(-3px); } 100% { transform: none; } }
+.rv-card.closing { visibility: visible; clip-path: none; transition: transform calc(0.3s * var(--k)) ease-in, opacity calc(0.3s * var(--k)) ease-in; transform: scale(0.9) translateY(14px); opacity: 0; }
+.rv.miss .rv-card { border-color: var(--border); background: var(--card); box-shadow: 0 26px 60px rgba(0, 0, 0, 0.55); }
+.rv.jack .rv-card { border-color: #ffd974; box-shadow: 0 26px 60px rgba(0, 0, 0, 0.55), 0 0 60px rgba(255, 200, 80, 0.35); }
+.rv-x { position: absolute; top: 12px; right: 12px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--border); background: var(--card2); color: var(--muted); }
+.rv-x svg { width: 12px; height: 12px; }
+.rv-medal { position: absolute; top: -52px; left: 50%; width: 104px; height: 104px; margin-left: -52px; border-radius: 50%; }
+.rv-medal::before { content: ""; position: absolute; inset: -26px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 214, 110, 0.42), transparent 68%); opacity: 0; }
+.rv.hit .rv-medal::before { opacity: 1; animation: halo 2.4s ease-in-out infinite; transition: opacity 0.4s; }
+@keyframes halo { 50% { transform: scale(1.12); opacity: 0.7; } }
+.rv-miss { position: absolute; inset: 8px; display: none; place-items: center; border-radius: 50%; font-size: 38px; font-weight: 900; color: var(--muted); background: radial-gradient(120% 120% at 32% 24%, #4a5160, #2a2f3a 55%, #171a21); border: 3px solid #5a6273; box-shadow: 0 12px 26px rgba(0, 0, 0, 0.5), inset 0 2px 6px rgba(255, 255, 255, 0.18); }
+.rv.miss .rv-miss { display: grid; }
+.rv-miss.shake { animation: headShake calc(0.7s * var(--k)) ease-in-out; }
+@keyframes headShake { 15% { transform: rotate(-14deg); } 35% { transform: rotate(11deg); } 55% { transform: rotate(-7deg); } 75% { transform: rotate(3deg); } }
+
+.cz { opacity: 0; }
+.rv-card.go .cz { animation: czIn calc(0.5s * var(--k)) var(--ease) both; animation-delay: calc((var(--d0) + var(--d)) * 1ms * var(--k)); }
+@keyframes czIn { from { opacity: 0; transform: translateY(14px) scale(0.97); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+.rv-lbl { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+.rv-card.go .rv-lbl { animation-name: track; }
+@keyframes track { from { opacity: 0; letter-spacing: 0.6em; filter: blur(3px); } to { opacity: 1; letter-spacing: 0.14em; filter: none; } }
+.rv-lbl::before, .rv-lbl::after { content: "✦"; font-size: 10px; }
+.rv-lbl:empty { display: none; }
+.rv-title { margin: 4px 0 12px; font-size: 26px; font-weight: 900; line-height: 1.1; text-transform: uppercase; color: var(--text); perspective: 400px; }
+.lt { display: inline-block; opacity: 0; transform-origin: 50% 100%; }
+.rv-card.go .lt { animation: ltIn calc(0.55s * var(--k)) var(--spring) both; animation-delay: calc((var(--d0) + 90 + var(--i) * 38) * 1ms * var(--k)); }
+@keyframes ltIn { from { opacity: 0; transform: translateY(70%) rotateX(-80deg) scale(0.6); } to { opacity: 1; transform: none; } }
+.rv.jack .rv-title { font-size: 34px; }
+.rv.jack .lt { background: linear-gradient(180deg, #fff6cf 0%, #ffd35a 45%, #d48a12 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 2px 0 rgba(90, 50, 0, 0.6)) drop-shadow(0 0 12px rgba(255, 200, 80, 0.5)); }
+.rv.jack .rv-card.go .lt { animation: ltIn calc(0.55s * var(--k)) var(--spring) both, ltHop 1.6s ease-in-out infinite; animation-delay: calc((var(--d0) + 90 + var(--i) * 38) * 1ms * var(--k)), calc(1.4s + var(--i) * 90ms); }
+@keyframes ltHop { 0%, 60%, 100% { transform: none; } 30% { transform: translateY(-6px) scale(1.06); } }
+.rv.miss .rv-title { color: var(--muted); }
+.rv-near { display: inline-flex; align-items: center; gap: 7px; margin: -2px 0 12px; padding: 6px 12px 6px 7px; border-radius: 99px; font-size: 12.5px; font-weight: 700; color: var(--muted); background: var(--card2); border: 1px solid var(--border); }
+.rv-near img, .rv-near .dl { width: 22px; height: 22px; border-radius: 50%; }
+.rv-near .dl { display: grid; place-items: center; font-size: 12px; font-weight: 900; color: #6b4306; background: radial-gradient(120% 120% at 32% 24%, #ffe88a, #e9b83e 46%, #a86f0e); }
+.rv-near b { color: var(--text); }
+.rv-panel { position: relative; width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px; padding: 14px 12px 12px; border-radius: 18px; border: 1px solid rgba(233, 182, 64, 0.34); background: radial-gradient(90% 120% at 50% 0%, var(--gold-soft), transparent 70%), var(--card2); overflow: hidden; }
+.rv-panel::after { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; background: linear-gradient(100deg, transparent, rgba(255, 240, 190, 0.18), transparent); pointer-events: none; }
+.rv-panel.shine::after { animation: sweep calc(0.9s * var(--k)) ease-in-out; }
+@keyframes sweep { to { left: 130%; } }
+.rv-spark { font-size: 14px; color: var(--gold); text-shadow: 0 0 10px rgba(255, 210, 90, 0.8); animation: twinkle 1.6s ease-in-out infinite; }
+.rv-spark.r { animation-delay: -0.8s; }
+@keyframes twinkle { 50% { opacity: 0.35; transform: scale(0.7) rotate(45deg); } }
+.rv-val { font-size: 40px; font-weight: 900; letter-spacing: -0.02em; color: var(--val); text-shadow: 0 0 22px rgba(245, 196, 81, 0.35); }
+.rv-val.pop { animation: valPop calc(0.55s * var(--k)) var(--spring); }
+@keyframes valPop { 35% { transform: scale(1.16); text-shadow: 0 0 34px rgba(255, 220, 120, 0.9); } }
+.rv.jack .rv-val { font-size: 44px; }
+.rv.jack .rv-val.pop { animation: valPop calc(0.55s * var(--k)) var(--spring), jackGlow 1.5s ease-in-out 0.6s infinite; }
+@keyframes jackGlow { 50% { text-shadow: 0 0 30px rgba(255, 220, 120, 0.9); } }
+.rv-chip { display: inline-flex; align-items: center; gap: 7px; margin-top: 10px; padding: 5px 12px 5px 5px; border-radius: 99px; font-size: 13.5px; font-weight: 850; color: var(--text); background: var(--card2); border: 1px solid var(--border); }
+.rv-chip img, .rv-chip .dl { width: 24px; height: 24px; border-radius: 50%; }
+.rv-chip .dl { display: grid; place-items: center; font-size: 12px; font-weight: 900; color: #6b4306; background: radial-gradient(120% 120% at 32% 24%, #ffe88a, #e9b83e 46%, #a86f0e); }
+.rv-info { width: 100%; display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 12px; border-radius: 16px; text-align: left; background: var(--card2); border: 1px solid var(--border); }
+.rv-ico { flex: none; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: var(--gold); background: var(--gold-soft); }
+.rv-ico svg { width: 20px; height: 20px; }
+.rv-card.go .rv-ico { animation: icoBounce calc(0.6s * var(--k)) var(--spring) both; animation-delay: calc((var(--d0) + 560) * 1ms * var(--k)); }
+@keyframes icoBounce { 0% { transform: scale(0) rotate(-30deg); } 100% { transform: none; } }
+.rv.miss .rv-ico { color: var(--muted); background: var(--card); }
+.rv-it { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.rv-it span { font-size: 11.5px; color: var(--muted); }
+.rv-it b { font-size: 12.5px; font-weight: 850; letter-spacing: 0.02em; text-transform: uppercase; color: var(--gold); }
+.rv-it b s { margin-right: 4px; color: var(--muted); font-weight: 700; }
+.rv-it b:empty { display: none; }
+.rv.miss .rv-it b { color: var(--muted); }
+.rv-btn { position: relative; width: 100%; height: 50px; display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 12px; border-radius: 15px; font-size: 14.5px; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; overflow: hidden; transition: transform 0.14s; }
+.rv-btn + .rv-btn { margin-top: 8px; }
+.rv-btn svg { width: 19px; height: 19px; }
+.rv-btn:active { transform: scale(0.97); }
+.rv-btn.gold { color: #1b1304; border: 1px solid #ffdc69; background: linear-gradient(104deg, #ffdc70, #f6c247 44%, #d79619); box-shadow: 0 10px 22px rgba(183, 119, 8, 0.28), inset 0 1px rgba(255, 255, 255, 0.52); }
+.rv-btn.gold::after { content: ""; position: absolute; top: 0; bottom: 0; width: 36%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent); animation: sweepLoop 3.4s ease-in-out 1.4s infinite; }
+@keyframes sweepLoop { 0%, 70% { left: -60%; } 100% { left: 130%; } }
+.rv-btn.dark { color: #edf1f7; border: 1px solid #4a5264; background: linear-gradient(112deg, #4c5a70, #30394b 50%, #202735); }
+.rv.miss .rv-btn.gold { color: #edf1f7; border-color: #4a5264; background: linear-gradient(112deg, #5a6882, #3a4458 50%, #262e3e); box-shadow: none; }
+
+/* Монета приза: две грани и ребро — при перевороте видна толщина. */
+.tok { position: absolute; left: 0; top: 0; z-index: 63; width: 104px; height: 104px; pointer-events: none; perspective: 700px; }
+.tok-3d { position: absolute; inset: 0; transform-style: preserve-3d; }
+.tok-face { position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%; backface-visibility: hidden; -webkit-backface-visibility: hidden; font-size: 48px; font-weight: 900; color: #6b4306; text-shadow: 0 1px 0 rgba(255, 240, 190, 0.8), 0 -1px 0 rgba(90, 50, 0, 0.4); background: radial-gradient(120% 120% at 32% 24%, #ffe88a 0%, #e9b83e 46%, #a86f0e 100%); border: 4px solid #ffe9a4; box-shadow: inset 0 3px 8px rgba(255, 255, 255, 0.55), inset 0 -6px 10px rgba(120, 70, 4, 0.5), 0 14px 30px rgba(0, 0, 0, 0.45); }
+.tok-face::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; border: 1.5px dashed rgba(120, 72, 6, 0.4); }
+.tok-face.f { transform: translateZ(5px); }
+.tok-face.b { transform: rotateY(180deg) translateZ(5px); }
+.tok-face img { position: relative; z-index: 1; width: 62%; height: 62%; border-radius: 50%; box-shadow: 0 0 0 3px rgba(120, 70, 4, 0.35), 0 4px 10px rgba(0, 0, 0, 0.3); }
+.tok-edge { position: absolute; left: 50%; top: 5%; width: 10px; height: 90%; margin-left: -5px; border-radius: 5px; background: linear-gradient(90deg, #7a4d08, #ffe08a 50%, #7a4d08); transform: rotateY(90deg); }
+.tok-shine { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; pointer-events: none; }
+.tok-shine::before { content: ""; position: absolute; top: -20%; bottom: -20%; left: -70%; width: 45%; transform: rotate(20deg); background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent); }
+.tok.idle .tok-3d { animation: tokFloat 3.2s ease-in-out infinite; }
+.tok.idle .tok-shine::before { animation: tokShine 3.2s ease-in-out 0.4s infinite; }
+@keyframes tokFloat { 50% { transform: translateY(-5px) rotateY(16deg); } }
+@keyframes tokShine { 0%, 55% { left: -70%; } 85%, 100% { left: 130%; } }
+.tok.jack .tok-face { border-color: #fff3c4; box-shadow: inset 0 3px 8px rgba(255, 255, 255, 0.6), inset 0 -6px 10px rgba(120, 70, 4, 0.5), 0 14px 30px rgba(0, 0, 0, 0.45), 0 0 44px rgba(255, 210, 90, 0.85); }
+.tok.fee .tok-face { font-size: 40px; }
+
+.fxc { position: absolute; inset: 0; z-index: 61; width: 100%; height: 100%; pointer-events: none; }
+.edge { position: absolute; inset: 0; z-index: 65; border-radius: inherit; pointer-events: none; opacity: 0; }
+.edge.gold { box-shadow: inset 0 0 80px rgba(255, 200, 80, 0.6); animation: edgeF calc(1.1s * var(--k)) ease-out; }
+@keyframes edgeF { 20% { opacity: 1; } 100% { opacity: 0; } }
+
+.toasts { position: absolute; z-index: 70; top: 58px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; }
+.toast { --tc: var(--muted); --tc-bg: rgba(154, 163, 178, 0.1); position: relative; width: calc(100% - 24px); display: flex; align-items: center; gap: 10px; padding: 8px 14px 8px 8px; border-radius: 17px; border: 1px solid var(--border); background: linear-gradient(95deg, var(--tc-bg), transparent 58%), var(--card); box-shadow: 0 14px 32px -10px rgba(0, 0, 0, 0.55); overflow: hidden; pointer-events: auto; cursor: pointer; animation: tIn 0.52s cubic-bezier(0.2, 1.3, 0.35, 1) both; }
+.toast.out { animation: tOut 0.28s ease-in forwards; }
+@keyframes tIn { from { opacity: 0; transform: translateY(-24px) scale(0.9); } }
+@keyframes tOut { to { opacity: 0; transform: translateY(-18px) scale(0.94); } }
+.toast.t-gold { --tc: var(--gold); --tc-bg: var(--gold-soft); border-color: var(--gold-border); }
+.t-ico { flex: none; width: 32px; height: 32px; border-radius: 11px; display: grid; place-items: center; color: var(--primary-text); background: var(--gold-grad); font-weight: 900; }
+.t-ico img { width: 100%; height: 100%; border-radius: 50%; }
+.t-ico svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.toast.t-info .t-ico { color: var(--muted); background: var(--card2); }
+.t-txt { flex: 1; min-width: 0; line-height: 1.25; }
+.t-txt b { display: block; font-size: 13.5px; font-weight: 800; }
+.t-txt i { display: block; font-style: normal; font-size: 12px; font-weight: 800; color: var(--tc); }
+.t-life { position: absolute; left: 14px; right: 14px; bottom: 0; height: 2px; border-radius: 2px; background: var(--tc); opacity: 0.55; transform-origin: left; animation: tLife 2.8s linear forwards; }
+@keyframes tLife { to { transform: scaleX(0); } }
+
+/* Табло: каждая цифра — барабан 0–9, крутится до нужной. */
+.odo { position: relative; display: inline-flex; height: 1.12em; line-height: 1.12; white-space: nowrap; }
+.od-c { display: inline-block; height: 1.12em; overflow: hidden; }
+.od-r { display: flex; flex-direction: column; transform: translateY(calc(var(--v, 0) * -1.12em)); transition: transform calc(1.05s * var(--k)) cubic-bezier(0.2, 0.85, 0.25, 1); transition-delay: calc(var(--j, 0) * 70ms * var(--k)); }
+.od-r > span { height: 1.12em; text-align: center; }
+.odo.instant .od-r { transition: none; }
+
+.dsheet { position: absolute; inset: 0; z-index: 85; visibility: hidden; }
+.dsheet.on { visibility: visible; }
+.dsheet-bg { position: absolute; inset: 0; background: rgba(0, 0, 0, 0.55); opacity: 0; transition: opacity 0.3s; }
+.dsheet.on .dsheet-bg { opacity: 1; }
+.dsheet-panel { position: absolute; left: 0; right: 0; bottom: 0; max-height: 80%; overflow-y: auto; padding: 10px 16px 30px; border-radius: 22px 22px 0 0; background: var(--card); border-top: 1px solid var(--border); transform: translateY(100%); transition: transform 0.42s cubic-bezier(0.16, 1, 0.3, 1); }
+.dsheet.on .dsheet-panel { transform: none; }
+.grab { width: 40px; height: 4px; margin: 0 auto 12px; border-radius: 99px; background: var(--muted); opacity: 0.4; }
+.dsheet h3 { font-size: 17px; font-weight: 800; }
+.dsheet .dctl { margin-top: 14px; }
+.fab { position: absolute; right: 14px; bottom: 18px; z-index: 30; display: none; width: 44px; height: 44px; border-radius: 50%; place-items: center; color: var(--gold); background: var(--card); border: 1px solid var(--gold-border); box-shadow: 0 10px 22px rgba(0, 0, 0, 0.4); }
+.fab svg { width: 20px; height: 20px; }
+
+@media (max-width: 620px) {
+  body { background: #0a0c10; }
+  .stage { display: block; height: auto; min-height: 0; padding: 0; }
+  .demo { display: none; }
+  .phone { width: 100%; height: 100vh; height: 100dvh; min-height: 0; padding: 0; border-radius: 0; background: none; box-shadow: none; }
+  .phone::before, .screen::after, .statusbar { display: none; }
+  .screen { border-radius: 0; }
+  .topbar { height: calc(54px + env(safe-area-inset-top, 0px)); padding-top: env(safe-area-inset-top, 0px); }
+  .toasts { top: calc(8px + env(safe-area-inset-top, 0px)); }
+  .fab { display: grid; }
+  .sbody { padding-bottom: 76px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .screen *, .screen *::before, .screen *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+  .cz, .lt { opacity: 1; }
+}
+::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+::view-transition-new(root) { animation: vtReveal 0.6s ease-in-out; }
+@keyframes vtReveal { from { clip-path: circle(0 at var(--vx, 50%) var(--vy, 50%)); } to { clip-path: circle(150% at var(--vx, 50%) var(--vy, 50%)); } }
+</style>
+</head>
+<body>
+<div class="stage">
+  <aside class="demo">
+    <div class="demo-brand"><img data-img="logo" alt="">TradeUp · концепт</div>
+    <h1>Выпадение приза</h1>
+    <p>Колесо удачи как в игре — те же секторы, шансы и палитры. Покрутите его: приз выскочит из выигравшего сектора, перевернётся в воздухе и раскроет карточку. Кнопками ниже можно выбрать исход заранее.</p>
+    <div class="dctl" id="dctl">
+      <div class="dgrp"><span>Анимации</span><div class="drow">
+        <button type="button" class="dbtn2 gold" data-act="spin">▶ Крутить</button>
+        <button type="button" class="dbtn2" data-act="replay">Повторить выпадение</button>
+        <button type="button" class="dbtn2" data-act="slow" aria-pressed="false">Замедлить ×3</button>
+      </div></div>
+      <div class="dgrp"><span>Выпадет</span><div class="drow">
+        <button type="button" class="dbtn2" data-force="usd">Деньги</button>
+        <button type="button" class="dbtn2" data-force="crypto">Крипта</button>
+        <button type="button" class="dbtn2" data-force="fee">Скидка −50%</button>
+        <button type="button" class="dbtn2" data-force="jack">Джекпот</button>
+        <button type="button" class="dbtn2" data-force="miss">Мимо</button>
+      </div></div>
+      <div class="dgrp"><span>Колесо</span><div class="drow">
+        <button type="button" class="dbtn2 on" data-mode="free">Обычное</button>
+        <button type="button" class="dbtn2" data-mode="vip">Золотое</button>
+      </div></div>
+      <div class="dgrp"><span>Тема</span><div class="drow">
+        <button type="button" class="dbtn2 on" data-theme-set="dark">Графит</button>
+        <button type="button" class="dbtn2" data-theme-set="light">Светлая</button>
+        <button type="button" class="dbtn2" data-theme-set="midnight">Полночь</button>
+      </div></div>
+    </div>
+    <div class="notes">
+      <b>Что изменилось</b>
+      <ul>
+        <li>Приз выпадает из самого колеса: монета отрывается от выигравшего сектора и по дуге летит к центру, оставляя искры</li>
+        <li>В полёте монета переворачивается — видно ребро, колесо уходит в тень</li>
+        <li>Приземление: вспышка, ударная волна, лучи и фонтан монет</li>
+        <li>Карточка раскрывается из-под монеты, текст появляется по буквам, сумма прокручивается на табло</li>
+        <li>Крипто-приз показан в долларах, количество монет — отдельным чипом: длинное число больше не вылезает за рамку</li>
+        <li>Джекпот — свой сценарий: тряска, двойные лучи, конфетти, прыгающие буквы</li>
+        <li>«Мимо» без праздника: пыль из сектора, тяжёлая карточка и подсказка, что было рядом</li>
+        <li>Закрытие — монета улетает в баланс в шапке, сумма докручивается</li>
+      </ul>
+    </div>
+  </aside>
+
+  <div class="phone">
+    <div class="screen" id="app" data-theme="dark">
+      <div class="statusbar" aria-hidden="true">
+        <span>9:41</span>
+        <span class="sb-r">
+          <svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+          <svg viewBox="0 0 16 12"><path d="M8 2.2c2.3 0 4.4.9 6 2.4l1.3-1.4A10.6 10.6 0 0 0 8 .3 10.6 10.6 0 0 0 .7 3.2L2 4.6a8.6 8.6 0 0 1 6-2.4zm0 3.6c1.3 0 2.5.5 3.5 1.3l1.3-1.4A7 7 0 0 0 8 3.9a7 7 0 0 0-4.8 1.8l1.3 1.4c1-.8 2.2-1.3 3.5-1.3zM8 9.4l2.1-2.2a3.2 3.2 0 0 0-4.2 0z"/></svg>
+          <svg viewBox="0 0 27 12"><rect x="0.5" y="0.5" width="23" height="11" rx="3.2" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="17" height="8" rx="2"/><rect x="25" y="4" width="2" height="4" rx="1" opacity=".4"/></svg>
+        </span>
+      </div>
+
+      <header class="topbar">
+        <button type="button" class="icon-btn" data-act="back" aria-label="Назад"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+        <div class="tt"><b>Колесо удачи</b><i id="tt-sub">Раз в 6 часов</i></div>
+        <span class="cap mono" id="cap">$0</span>
+      </header>
+
+      <main class="sbody" id="sbody">
+        <div class="sw" role="tablist" aria-label="Режим колеса">
+          <button type="button" class="ssw on" data-mode="free" role="tab" aria-selected="true">
+            <span class="ssw-ico" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12.5" stroke="currentColor" stroke-width="2"/><path d="M16 3.5v25M3.5 16h25M7.4 7.4l17.2 17.2M24.6 7.4L7.4 24.6" stroke="currentColor" stroke-width="1.1" opacity=".85"/><circle cx="16" cy="16" r="3" fill="currentColor"/></svg></span>
+            <span class="ssw-c"><b>Обычный</b><i>Крутить</i></span><span class="ssw-a" aria-hidden="true">›</span>
+          </button>
+          <button type="button" class="ssw vip" data-mode="vip" role="tab" aria-selected="false">
+            <span class="ssw-ico" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="12.5" stroke="currentColor" stroke-width="2"/><path d="M16 3.5v25M3.5 16h25M7.4 7.4l17.2 17.2M24.6 7.4L7.4 24.6" stroke="currentColor" stroke-width="1.1" opacity=".85"/><circle cx="16" cy="16" r="3" fill="currentColor"/></svg></span>
+            <span class="ssw-c"><b>Золотой</b><i>За рекламу</i></span><span class="ssw-a" aria-hidden="true">›</span>
+          </button>
+        </div>
+
+        <div class="wstage is-ready" id="wstage">
+          <div class="wrays" aria-hidden="true"></div>
+          <div class="wwheel" id="wwheel">
+            <div class="wframe" aria-hidden="true"><div class="wbulbs" id="wbulbs"></div></div>
+            <svg id="wsvg" viewBox="0 0 200 200" role="img" aria-label="Колесо удачи">
+              <defs>
+                <clipPath id="grainClip"><circle cx="100" cy="100" r="95.5"/></clipPath>
+                <filter id="grainF" x="-10%" y="-10%" width="120%" height="120%">
+                  <feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="2" seed="31" result="n"/>
+                  <feColorMatrix in="n" type="saturate" values="0" result="g"/>
+                  <feComponentTransfer in="g"><feFuncA type="table" tableValues="0 0.085"/></feComponentTransfer>
+                </filter>
+                <linearGradient id="goldEdge" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff0a8"/><stop offset=".46" stop-color="#f4c64d"/><stop offset="1" stop-color="#8c550a"/></linearGradient>
+                <radialGradient id="coreVip" cx="40%" cy="30%" r="78%"><stop offset="0%" stop-color="#ffe88a"/><stop offset="55%" stop-color="#c98e1e"/><stop offset="100%" stop-color="#5a3b08"/></radialGradient>
+                <radialGradient id="coreFree" cx="40%" cy="30%" r="78%"><stop offset="0%" stop-color="#5b6275"/><stop offset="55%" stop-color="#3a4050"/><stop offset="100%" stop-color="#15171f"/></radialGradient>
+              </defs>
+              <defs id="icdefs"></defs>
+              <g id="disc">
+                <circle class="grain" cx="100" cy="100" r="95.5" filter="url(#grainF)" clip-path="url(#grainClip)"/>
+                <g id="secs"></g>
+              </g>
+              <g id="win" aria-hidden="true"></g>
+              <circle class="rim" cx="100" cy="100" r="96.5"/>
+              <circle class="oedge" cx="100" cy="100" r="97"/>
+              <circle class="iedge" cx="100" cy="100" r="91.4"/>
+              <circle class="cring" cx="100" cy="100" r="21.8"/>
+              <circle class="core" cx="100" cy="100" r="20"/>
+              <g class="cicon" aria-hidden="true">
+                <circle cx="100" cy="100" r="13.6" fill="none" stroke="currentColor" stroke-width="0.55" stroke-opacity="0.35"/>
+                <path d="M 90.5 108.2 L 99.5 99.4 L 103.7 103.5 L 109.6 92.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M 105 92.6 L 109.6 92.6 L 109.6 97.6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+              </g>
+              <g id="ticks" opacity="0.55"></g>
+            </svg>
+            <button type="button" class="whub" data-act="spin" aria-label="Крутить колесо"></button>
+          </div>
+          <span class="wptr" id="wptr" aria-hidden="true">
+            <svg viewBox="0 0 44 56">
+              <defs>
+                <linearGradient id="ptrBody" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="p-s1"/><stop offset=".5" class="p-s2"/><stop offset="1" class="p-s3"/></linearGradient>
+                <radialGradient id="ptrGem" cx="38%" cy="32%" r="70%"><stop offset="0" stop-color="#fff6c8"/><stop offset=".45" stop-color="#f1c04a"/><stop offset="1" stop-color="#8c550a"/></radialGradient>
+              </defs>
+              <path class="p-shadow" d="M22 54 C16.5 42 5 32.5 5 20 A17 17 0 0 1 39 20 C39 32.5 27.5 42 22 54 Z"/>
+              <path class="p-body" d="M22 52 C16.5 40 5 30.5 5 19 A17 17 0 0 1 39 19 C39 30.5 27.5 40 22 52 Z"/>
+              <path class="p-shine" d="M11 13 A12 12 0 0 1 24 7.5"/>
+              <circle class="p-gem" cx="22" cy="19" r="7.2"/>
+              <circle class="p-hi" cx="19.6" cy="16.4" r="2.1"/>
+            </svg>
+          </span>
+        </div>
+
+        <section class="wact">
+          <p class="wnote" id="wnote">Обычный спин — без рекламы</p>
+          <button type="button" class="wgo" id="wgo" data-act="spin">
+            <span class="wgo-w" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="2"/><path d="M16 3v26M3 16h26M6.8 6.8l18.4 18.4M25.2 6.8L6.8 25.2" stroke="currentColor" stroke-width="1.3" opacity=".82"/><circle cx="16" cy="16" r="3.2" fill="currentColor"/></svg></span>
+            <span class="wgo-c"><b id="wgo-t">Крутить</b><i id="wgo-s">Раз в 6 часов</i></span>
+            <span class="wgo-l mono">Демо · ∞</span>
+          </button>
+        </section>
+      </main>
+
+      <div class="rv" id="rv" hidden>
+        <div class="rv-bg" data-act="claim"></div>
+        <div class="rv-rays" aria-hidden="true"><i></i><i></i></div>
+        <div class="rv-wrap">
+          <section class="rv-card" id="rv-card" role="dialog" aria-modal="true" aria-labelledby="rv-title" aria-live="polite">
+            <button type="button" class="rv-x" data-act="claim" aria-label="Забрать и закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <div class="rv-medal" id="rv-medal"><span class="rv-miss" id="rv-miss" aria-hidden="true">✕</span></div>
+            <span class="rv-lbl cz" id="rv-lbl" style="--d:0">Поздравляем!</span>
+            <h2 class="rv-title" id="rv-title">Твой приз</h2>
+            <div class="rv-near cz" id="rv-near" style="--d:380" hidden></div>
+            <div class="rv-panel cz" id="rv-panel" style="--d:260"><span class="rv-spark" aria-hidden="true">✦</span><b class="rv-val odo mono" id="rv-val"></b><span class="rv-spark r" aria-hidden="true">✦</span></div>
+            <div class="rv-chip cz" id="rv-chip" style="--d:470" hidden></div>
+            <div class="rv-info cz" style="--d:520">
+              <span class="rv-ico" id="rv-ico" aria-hidden="true"></span>
+              <span class="rv-it"><span id="rv-sub">—</span><b class="mono" id="rv-bal"></b></span>
+            </div>
+            <button type="button" class="rv-btn gold cz" id="rv-again" data-act="again" style="--d:640">
+              <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="16" cy="16" r="12.5"/><path d="M16 9.5v6.5l4.5 3" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span>Ещё раз</span>
+            </button>
+            <button type="button" class="rv-btn dark cz" data-act="lobby" style="--d:710">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/></svg>
+              <span>Вернуться в лобби</span>
+            </button>
+          </section>
+        </div>
+        <div class="rv-flash" aria-hidden="true"></div>
+        <div class="rv-ring" aria-hidden="true"></div>
+        <div class="rv-ring r2" aria-hidden="true"></div>
+      </div>
+
+      <canvas class="fxc" id="fxc" aria-hidden="true"></canvas>
+      <div class="tok" id="tok" hidden aria-hidden="true"><div class="tok-3d"><span class="tok-face f"></span><span class="tok-edge"></span><span class="tok-face b"></span></div><span class="tok-shine"></span></div>
+      <div class="edge" id="edge"></div>
+      <div class="toasts" id="toasts" aria-live="polite"></div>
+      <button type="button" class="fab" data-act="open-demo" aria-label="Демо-панель"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+      <div class="dsheet" id="dsheet">
+        <div class="dsheet-bg" data-act="close-demo"></div>
+        <div class="dsheet-panel"><div class="grab"></div><h3>Демо-панель</h3><div id="dctl-slot"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var IMG = /*__IMAGES__*/{"bitcoin":"data:image/png;base64,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","ethereum":"data:image/png;base64,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","logo":"data:image/png;base64,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"};
+
+  var app = document.getElementById('app');
+  function $(s, r) { return (r || document).querySelector(s); }
+  function $$(s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); }
+  var RM = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  var K = 1;
+  function D(ms) { return RM.matches ? 0 : ms * K; }
+  function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function reflow(el) { return el.offsetWidth; }
+  function restart(el, c) { el.classList.remove(c); reflow(el); el.classList.add(c); }
+  function mod(a) { return ((a % 360) + 360) % 360; }
+  function anim(el, frames, o) {
+    if (!el || !el.animate || RM.matches) return null;
+    o.duration = D(o.duration);
+    if (o.delay) o.delay = D(o.delay);
+    return el.animate(frames, o);
+  }
+  function tween(ms, fn, done) {
+    var d = D(ms), t0 = 0, raf = 0, stop = false;
+    if (!d) { fn(1); if (done) done(); return function () {}; }
+    function step(ts) {
+      if (stop) return;
+      if (!t0) t0 = ts;
+      var p = Math.min(1, (ts - t0) / d);
+      fn(p);
+      if (p < 1) raf = requestAnimationFrame(step); else if (done) done();
+    }
+    raf = requestAnimationFrame(step);
+    return function () { stop = true; cancelAnimationFrame(raf); };
+  }
+  function countTo(el, from, to, fmt, ms) {
+    if (el.__stop) el.__stop();
+    el.textContent = fmt(from);
+    el.__stop = tween(ms, function (t) { el.textContent = fmt(lerp(from, to, easeOut(t))); }, function () { el.__stop = null; });
+  }
+
+  /* ---------------- Форматы ---------------- */
+
+  var NB = '\u00A0', MINUS = '\u2212';
+  function groups(s) { return s.replace(/\B(?=(\d{3})+(?!\d))/g, NB); }
+  function money(v, dec) {
+    if (dec == null) dec = 2;
+    var p = Math.abs(v).toFixed(dec).split('.');
+    return (v < 0 ? MINUS : '') + '$' + groups(p[0]) + (p[1] ? '.' + p[1] : '');
+  }
+  function qty(v) { return v >= 1 ? v.toFixed(3) : v >= 0.01 ? v.toFixed(5) : v.toFixed(8).replace(/0+$/, ''); }
+  function qtyShort(v) { return v >= 1 ? v.toFixed(3) : v.toFixed(6); }
+
+  /* ---------------- Данные: как в js/data.js ---------------- */
+
+  var PRICE = { bitcoin: 77605, ethereum: 2434.8 }, TICKER = { bitcoin: 'BTC', ethereum: 'ETH' };
+  var SECS = {
+    free: [
+      { type: 'usd', usd: 10, w: 18, label: '$10' },
+      { type: 'usd', usd: 25, w: 10, label: '$25' },
+      { type: 'crypto', id: 'bitcoin', usd: 50, w: 4, jackpot: true, label: '$50 BTC' },
+      { type: 'miss', w: 8, label: 'Пусто' },
+      { type: 'crypto', id: 'bitcoin', usd: 2, w: 16, label: '$2 BTC' },
+      { type: 'crypto', id: 'ethereum', usd: 4, w: 12, label: '$4 ETH' },
+      { type: 'crypto', id: 'bitcoin', usd: 1, w: 12, label: '$1 BTC' }
+    ],
+    vip: [
+      { type: 'crypto', id: 'bitcoin', usd: 500, w: 4, jackpot: true, label: '$500 BTC' },
+      { type: 'crypto', id: 'ethereum', usd: 50, w: 12, label: '$50 ETH' },
+      { type: 'usd', usd: 250, w: 8, label: '$250' },
+      { type: 'commission', pct: 25, trades: 3, w: 12, label: '−25% Комиссия' },
+      { type: 'crypto', id: 'ethereum', usd: 100, w: 6, label: '$100 ETH' },
+      { type: 'commission', pct: 50, trades: 3, w: 6, label: '−50% Комиссия' },
+      { type: 'usd', usd: 2500, w: 2, label: '$2500' }
+    ]
+  };
+  var COLORS = {
+    free: ['#2b3a5c', '#1f4a52', '#161922', '#10121a', '#372655', '#2a1f44', '#31264d'],
+    vip: ['#e3c368', '#26262e', '#cfa944', '#20222a', '#c09538', '#1f2128', '#bb9439']
+  };
+  var FEE_BASE = 1;
+  var S = { mode: 'free', angle: 0, busy: false, cash: 750, hold: { bitcoin: 0.0024, ethereum: 0.04 }, fee: { pct: 0, left: 0 }, last: null, force: null };
+  function capital() { return S.cash + S.hold.bitcoin * PRICE.bitcoin + S.hold.ethereum * PRICE.ethereum; }
+
+  function reward(sec) {
+    if (sec.type === 'miss') return null;
+    if (sec.type === 'commission') return { kind: 'fee', pct: sec.pct, trades: sec.trades, usd: 0 };
+    if (sec.type === 'crypto') return { kind: 'crypto', id: sec.id, usd: sec.usd, qty: sec.usd / PRICE[sec.id], t: TICKER[sec.id] };
+    return { kind: 'usd', usd: sec.usd };
+  }
+  /* Начисление — один раз на крутку, даже если выпадение проиграли повторно. */
+  function credit(res) {
+    if (!res || res.credited) return false;
+    res.credited = true;
+    if (res.kind === 'usd') S.cash += res.usd;
+    else if (res.kind === 'crypto') S.hold[res.id] += res.qty;
+    else { S.fee.pct = Math.max(S.fee.pct, res.pct); S.fee.left = Math.max(S.fee.left, res.trades); }
+    return true;
+  }
+
+  /* ---------------- Колесо: геометрия как в игре ---------------- */
+
+  var NS = 'http://www.w3.org/2000/svg', C = 100, R = 96, HUB_R = 36, ICON_R = 44;
+  function sv(tag, at) { var e = document.createElementNS(NS, tag); for (var k in at) e.setAttribute(k, at[k]); return e; }
+  function pt(r, deg) { var a = deg * Math.PI / 180; return { x: C + r * Math.sin(a), y: C - r * Math.cos(a) }; }
+  function n2(v) { return Math.round(v * 100) / 100; }
+  function textOn(hex) {
+    var n = parseInt(hex.slice(1), 16), l = 0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+    return l > 150 ? '#2a1a02' : '#ffffff';
+  }
+  function wedge(a0, a1) {
+    var p0 = pt(R, a0), p1 = pt(R, a1);
+    return 'M' + C + ' ' + C + 'L' + n2(p0.x) + ' ' + n2(p0.y) + 'A' + R + ' ' + R + ' 0 0 1 ' + n2(p1.x) + ' ' + n2(p1.y) + 'Z';
+  }
+  function hasIcon(s) { return s.type !== 'miss'; }
+  function build() {
+    var host = $('#secs'), defs = $('#icdefs'), secs = SECS[S.mode], n = secs.length, step = 360 / n, vip = S.mode === 'vip', i;
+    host.textContent = '';
+    defs.textContent = '';
+    for (i = 0; i < n; i++) host.appendChild(sv('path', { d: wedge(i * step, (i + 1) * step), fill: COLORS[S.mode][i], stroke: 'rgba(0,0,0,0.28)', 'stroke-width': 0.9 }));
+    var halo = vip ? { halo: 'rgba(255, 232, 168, 0.13)', ring: 'rgba(255, 220, 100, 0.5)' } : { halo: 'rgba(255, 255, 255, 0.08)', ring: 'rgba(200, 210, 230, 0.55)' };
+    for (i = 0; i < n; i++) {
+      var s = secs[i], mid = i * step + step / 2, icon = hasIcon(s);
+      if (icon) {
+        var g = sv('g', { 'class': 'sic', id: 'sic-' + i }), ip = pt(ICON_R, mid), ir = 8.4;
+        g.appendChild(sv('circle', { cx: n2(ip.x), cy: n2(ip.y), r: ir + 1.6, fill: halo.halo }));
+        if (s.type === 'crypto') {
+          var cp = sv('clipPath', { id: 'ic-' + i });
+          cp.appendChild(sv('circle', { cx: n2(ip.x), cy: n2(ip.y), r: ir }));
+          defs.appendChild(cp);
+          var im = sv('image', { x: n2(ip.x - ir), y: n2(ip.y - ir), width: ir * 2, height: ir * 2, 'clip-path': 'url(#ic-' + i + ')' });
+          im.setAttribute('href', IMG[s.id]);
+          g.appendChild(im);
+        } else {
+          var tx = sv('text', { x: n2(ip.x), y: n2(ip.y), dy: '0.36em', 'text-anchor': 'middle', 'font-size': n2(ir * (s.type === 'commission' ? 1.35 : 1.55)), 'font-weight': 800, fill: vip ? 'rgba(255, 240, 180, 0.96)' : 'rgba(220, 226, 240, 0.96)' });
+          tx.textContent = s.type === 'usd' ? '$' : '%';
+          g.appendChild(tx);
+        }
+        g.appendChild(sv('circle', { cx: n2(ip.x), cy: n2(ip.y), r: ir + 0.5, fill: 'none', stroke: halo.ring, 'stroke-width': 1 }));
+        host.appendChild(g);
+      }
+      var labelR = icon ? 76 : 63, ap = pt(labelR, mid), fs = n > 6 ? 8.2 : 8.7, label = s.label;
+      if (label.length > 6) fs -= 0.7;
+      if (label.length > 6 && (mid < step || mid > 360 - step)) { ap = pt(labelR - 8, mid); fs -= 0.35; }
+      var parts = label.split(/\s+/), col = textOn(COLORS[S.mode][i]);
+      if (parts.length >= 2 && icon) {
+        var gap = fs * 0.92, y0 = ap.y - gap * (parts.length - 1) / 2;
+        parts.forEach(function (part, pi) {
+          var t = sv('text', { x: n2(ap.x), y: n2(y0 + pi * gap), dy: '0.34em', 'text-anchor': 'middle', 'font-size': n2(pi ? Math.max(5.2, fs * 0.74) : fs), 'font-weight': pi ? 700 : 800, fill: col, 'letter-spacing': pi ? '0.08em' : '0.02em' });
+          t.textContent = part;
+          host.appendChild(t);
+        });
+      } else {
+        var t1 = sv('text', { x: n2(ap.x), y: n2(ap.y), dy: '0.34em', 'text-anchor': 'middle', 'font-size': n2(fs), 'font-weight': 800, fill: col });
+        t1.textContent = label;
+        host.appendChild(t1);
+      }
+    }
+    var tg = $('#ticks');
+    tg.textContent = '';
+    for (i = 0; i < n; i++) {
+      var p = pt(91.5, i * step);
+      if (vip) tg.appendChild(sv('circle', { cx: n2(p.x), cy: n2(p.y), r: 4.1, fill: 'rgba(255, 214, 100, 0.15)' }));
+      tg.appendChild(sv('circle', { cx: n2(p.x), cy: n2(p.y), r: vip ? 2.3 : 2.1, fill: vip ? 'rgba(255, 236, 170, 0.85)' : 'rgba(205, 214, 231, 0.92)', stroke: vip ? 'rgba(140, 90, 10, 0.55)' : 'rgba(60, 70, 88, 0.85)', 'stroke-width': 0.4 }));
+    }
+  }
+  function showWin(miss) {
+    var g = $('#win'), step = 360 / SECS[S.mode].length, w = wedge(-step / 2, step / 2);
+    var disc = 'M' + (C - R) + ' ' + C + ' A' + R + ' ' + R + ' 0 1 0 ' + (C + R) + ' ' + C + ' A' + R + ' ' + R + ' 0 1 0 ' + (C - R) + ' ' + C + ' Z';
+    g.textContent = '';
+    g.classList.toggle('miss', !!miss);
+    g.appendChild(sv('path', { d: disc + ' ' + w, 'class': 'wdim' }));
+    g.appendChild(sv('path', { d: w, 'class': 'wglow' }));
+  }
+  function clearWin() { $('#win').textContent = ''; }
+  function restoreIcons() { $$('.sic.gone').forEach(function (g) { g.classList.remove('gone'); }); }
+
+  var stage = $('#wstage'), disc = $('#disc'), ptr = $('#wptr'), restStop = null;
+  function setAngle(d) { S.angle = d; disc.style.transform = 'rotate(' + n2(d) + 'deg)'; }
+  function restAngle() { return -180 / SECS[S.mode].length; }
+  function tweenRest(ms) {
+    var delta = mod(restAngle()) - mod(S.angle), from = S.angle;
+    while (delta > -140) delta -= 360;
+    if (restStop) restStop();
+    restStop = tween(ms, function (t) { setAngle(from + delta * easeOut(t)); }, function () { restStop = null; });
+  }
+  function drawIdx(secs) {
+    var tot = secs.reduce(function (s, x) { return s + x.w; }, 0), r = Math.random() * tot;
+    for (var i = 0; i < secs.length; i++) { r -= secs[i].w; if (r < 0) return i; }
+    return secs.length - 1;
+  }
+
+  /* ---------------- Крутка: как в игре ---------------- */
+
+  function spin() {
+    if (S.busy) return;
+    if (RV.open) { claim(spin); return; }
+    closeDemo();
+    S.busy = true;
+    var mode = S.mode, secs = SECS[mode], n = secs.length, idx = S.force != null ? S.force : drawIdx(secs);
+    S.force = null;
+    clearWin();
+    restoreIcons();
+    stage.classList.remove('is-landed', 'is-jackpot', 'is-ready');
+    syncGo();
+    function launch() {
+      stage.classList.add('is-spinning');
+      if (restStop) restStop();
+      var step = 360 / n, turns = 4 + Math.floor(Math.random() * 3), delta = mod(-(idx * step + step / 2)) - mod(S.angle);
+      if (delta <= 0) delta += 360;
+      var total = turns * 360 + delta, start = S.angle, ms = D(3600 + Math.random() * 800), t0 = 0, last = -1, slowing = false;
+      if (!ms) { setAngle(start + total); land(mode, idx); return; }
+      function frame(ts) {
+        if (!t0) t0 = ts;
+        var p = Math.min(1, (ts - t0) / ms), e = 1 - Math.pow(1 - p, 3.6);
+        if (p > 0.86) e += Math.sin((p - 0.86) / 0.14 * Math.PI) * 0.006;
+        setAngle(start + total * e);
+        if (!slowing && p > 0.6) { slowing = true; stage.classList.add('is-slowing'); }
+        var now = Math.floor(mod(-S.angle) / step) % n;
+        if (now !== last) { last = now; restart(ptr, 'tick'); }
+        if (p < 1) { requestAnimationFrame(frame); return; }
+        setAngle(start + total);
+        land(mode, idx);
+      }
+      requestAnimationFrame(frame);
+    }
+    if (RM.matches) { launch(); return; }
+    ptr.classList.remove('tick', 'release', 'catch');
+    restart(ptr, 'windup');
+    stage.classList.add('is-winding');
+    setTimeout(function () {
+      ptr.classList.remove('windup');
+      restart(ptr, 'release');
+      stage.classList.remove('is-winding');
+      setTimeout(function () { ptr.classList.remove('release'); }, D(430));
+      launch();
+    }, D(380));
+  }
+  function land(mode, idx) {
+    var sec = SECS[mode][idx], res = reward(sec), jack = !!(sec.jackpot && res);
+    stage.classList.remove('is-spinning', 'is-slowing');
+    stage.classList.add('is-landed');
+    stage.classList.toggle('is-jackpot', jack);
+    ptr.classList.remove('tick');
+    restart(ptr, 'catch');
+    showWin(!res);
+    S.last = { mode: mode, idx: idx, sec: sec, res: res, jack: jack };
+    setTimeout(function () { reveal(S.last); }, D(res ? 520 : 650));
+  }
+
+  /* ---------------- Частицы на canvas ---------------- */
+
+  var FX = { cv: $('#fxc'), ctx: null, parts: [], raf: 0, last: 0, w: 0, h: 0, dpr: 1, spr: {} };
+  FX.ctx = FX.cv.getContext('2d');
+  function fxSize() {
+    var r = app.getBoundingClientRect();
+    FX.dpr = Math.min(2, window.devicePixelRatio || 1);
+    FX.w = r.width;
+    FX.h = r.height;
+    FX.cv.width = Math.round(r.width * FX.dpr);
+    FX.cv.height = Math.round(r.height * FX.dpr);
+  }
+  /* Спрайты монет рисуются один раз, дальше — только drawImage. */
+  function coinSprite(id) {
+    var key = id || 'gold';
+    if (FX.spr[key]) return FX.spr[key];
+    var c = document.createElement('canvas'), x = c.getContext('2d'), S2 = 64;
+    c.width = c.height = S2;
+    var g = x.createRadialGradient(22, 18, 4, 32, 32, 32);
+    g.addColorStop(0, '#fff2b0'); g.addColorStop(0.45, '#eab63c'); g.addColorStop(1, '#9a650c');
+    x.fillStyle = '#7a4d08'; x.beginPath(); x.arc(32, 32, 31, 0, 7); x.fill();
+    x.fillStyle = g; x.beginPath(); x.arc(32, 32, 28, 0, 7); x.fill();
+    x.strokeStyle = 'rgba(255,240,190,.7)'; x.lineWidth = 2; x.beginPath(); x.arc(32, 32, 22, 0, 7); x.stroke();
+    var img = id && IMG[id] ? new Image() : null;
+    if (img) {
+      img.onload = function () { x.save(); x.beginPath(); x.arc(32, 32, 19, 0, 7); x.clip(); x.drawImage(img, 13, 13, 38, 38); x.restore(); };
+      img.src = IMG[id];
+    } else {
+      x.fillStyle = '#6b4306'; x.font = '900 30px sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('$', 32, 34);
+    }
+    FX.spr[key] = c;
+    return c;
+  }
+  function fxAdd(p) {
+    p.age = 0;
+    FX.parts.push(p);
+    if (!FX.raf) { FX.last = 0; FX.raf = requestAnimationFrame(fxLoop); }
+  }
+  function fxLoop(ts) {
+    var dt = FX.last ? Math.min(0.05, (ts - FX.last) / 1000) / K : 0.016, ctx = FX.ctx;
+    FX.last = ts;
+    ctx.setTransform(FX.dpr, 0, 0, FX.dpr, 0, 0);
+    ctx.clearRect(0, 0, FX.w, FX.h);
+    for (var i = FX.parts.length - 1; i >= 0; i--) {
+      var p = FX.parts[i];
+      p.age += dt;
+      if (p.age >= p.life) { FX.parts.splice(i, 1); continue; }
+      var k = Math.pow(p.drag, dt * 60);
+      p.vx *= k; p.vy = p.vy * k + p.g * dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.rot += p.vr * dt;
+      var life = p.age / p.life, al = life < 0.7 ? 1 : 1 - (life - 0.7) / 0.3;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      if (p.kind === 'spark') {
+        ctx.globalCompositeOperation = 'lighter';
+        ctx.globalAlpha = (1 - life) * 0.9;
+        var r0 = p.size * (1 - life * 0.5), gr = ctx.createRadialGradient(0, 0, 0, 0, 0, r0 * 3);
+        gr.addColorStop(0, p.color); gr.addColorStop(0.35, p.color); gr.addColorStop(1, 'rgba(255,190,60,0)');
+        ctx.fillStyle = gr;
+        ctx.beginPath(); ctx.arc(0, 0, r0 * 3, 0, 7); ctx.fill();
+      } else if (p.kind === 'coin') {
+        ctx.globalAlpha = al;
+        ctx.rotate(p.rot);
+        ctx.scale(Math.abs(Math.cos(p.age * p.flip)) * 0.85 + 0.15, 1);
+        ctx.drawImage(coinSprite(p.id), -p.size, -p.size, p.size * 2, p.size * 2);
+      } else if (p.kind === 'conf') {
+        ctx.globalAlpha = al;
+        ctx.rotate(p.rot);
+        ctx.scale(1, Math.cos(p.age * p.flip));
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
+      } else {
+        ctx.globalAlpha = (1 - life) * 0.55;
+        ctx.fillStyle = p.color;
+        ctx.beginPath(); ctx.arc(0, 0, p.size * (1 + life * 1.6), 0, 7); ctx.fill();
+      }
+      ctx.restore();
+    }
+    FX.raf = FX.parts.length ? requestAnimationFrame(fxLoop) : 0;
+    if (!FX.raf) ctx.clearRect(0, 0, FX.w, FX.h);
+  }
+  function rnd(a, b) { return a + Math.random() * (b - a); }
+  var SPARK = ['#fff7d6', '#ffe08a', '#ffc94d', '#fff'];
+  function sparks(x, y, n, speed) {
+    if (RM.matches) return;
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * Math.PI * 2, v = rnd(speed * 0.4, speed);
+      fxAdd({ kind: 'spark', x: x, y: y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: 0, drag: 0.9, life: rnd(0.4, 0.75), size: rnd(1.6, 3.2), rot: 0, vr: 0, color: SPARK[i % 4] });
+    }
+  }
+  function fountain(x, y, n, id) {
+    if (RM.matches) return;
+    for (var i = 0; i < n; i++) {
+      var a = -Math.PI / 2 + rnd(-1, 1), v = rnd(420, 860);
+      fxAdd({ kind: 'coin', x: x, y: y, vx: Math.cos(a) * v * 0.8, vy: Math.sin(a) * v, g: 1500, drag: 0.992, life: rnd(1.3, 1.9), size: rnd(7, 12), rot: rnd(-1, 1), vr: rnd(-6, 6), flip: rnd(6, 14), id: id && i % 3 === 0 ? id : null });
+    }
+  }
+  var CONF = ['#ffd35a', '#fff3c4', '#e9b640', '#2fbe6e', '#4da3ff', '#ff7a90', '#b57bff'];
+  function confetti(n, ms) {
+    if (RM.matches) return;
+    var i = 0, per = Math.max(1, Math.round(n / (D(ms) / 50 || 1))), iv = setInterval(function () {
+      for (var j = 0; j < per && i < n; j++, i++) fxAdd({ kind: 'conf', x: rnd(0, FX.w), y: -10, vx: rnd(-40, 40), vy: rnd(90, 190), g: 160, drag: 0.99, life: rnd(2.2, 3.4), size: rnd(7, 11), rot: rnd(0, 6), vr: rnd(-5, 5), flip: rnd(5, 10), color: CONF[(i * 7) % CONF.length] });
+      if (i >= n) clearInterval(iv);
+    }, 50);
+  }
+  function dust(x, y, n) {
+    if (RM.matches) return;
+    for (var i = 0; i < n; i++) {
+      var a = -Math.PI / 2 + rnd(-1.3, 1.3), v = rnd(30, 120);
+      fxAdd({ kind: 'dust', x: x + rnd(-10, 10), y: y + rnd(-4, 4), vx: Math.cos(a) * v, vy: Math.sin(a) * v, g: -20, drag: 0.94, life: rnd(0.7, 1.1), size: rnd(3, 6), rot: 0, vr: 0, color: 'rgba(170,180,200,1)' });
+    }
+  }
+
+  /* ---------------- Координаты ---------------- */
+
+  function relRect(el) { var a = app.getBoundingClientRect(), r = el.getBoundingClientRect(); return { x: r.left - a.left + r.width / 2, y: r.top - a.top + r.height / 2, w: r.width, h: r.height }; }
+  /* Точка сектора под стрелкой (он всегда сверху) в координатах экрана. */
+  function wheelPt(r) {
+    var a = app.getBoundingClientRect(), s = $('#wsvg').getBoundingClientRect(), p = pt(r, 0), k = s.width / 200;
+    return { x: s.left - a.left + p.x * k, y: s.top - a.top + p.y * k, k: k };
+  }
+  var SZ = 104;
+  function T(x, y, s) { return 'translate(' + (x - SZ / 2).toFixed(1) + 'px,' + (y - SZ / 2).toFixed(1) + 'px) scale(' + s.toFixed(3) + ')'; }
+
+  /* ---------------- Выпадение приза ---------------- */
+
+  var RV = { open: false, closing: false, L: null, timers: [], m: null, trail: 0 };
+  var rv = $('#rv'), card = $('#rv-card'), tok = $('#tok'), tok3d = $('.tok-3d', tok);
+  var valOdo = Odo($('#rv-val'));
+  function later(fn, ms) { RV.timers.push(setTimeout(fn, D(ms))); }
+  function clearTimers() { RV.timers.forEach(clearTimeout); RV.timers = []; cancelAnimationFrame(RV.trail); RV.trail = 0; }
+  function stopTok() { [tok, tok3d].forEach(function (el) { if (el.getAnimations) el.getAnimations().forEach(function (a) { a.cancel(); }); }); }
+  function faceHtml(res) {
+    if (res.kind === 'crypto') return '<img src="' + IMG[res.id] + '" alt="">';
+    return res.kind === 'fee' ? '%' : '$';
+  }
+  function smallIcon(res, sec) {
+    var id = res ? res.id : sec.id;
+    if (id) return '<img src="' + IMG[id] + '" alt="">';
+    return '<span class="dl">' + ((res ? res.kind === 'fee' : sec.type === 'commission') ? '%' : '$') + '</span>';
+  }
+  function letters(el, text) {
+    el.setAttribute('aria-label', text);
+    el.innerHTML = Array.prototype.map.call(text, function (ch, i) {
+      return '<span class="lt" aria-hidden="true" style="--i:' + i + '">' + (ch === ' ' ? '&nbsp;' : esc(ch)) + '</span>';
+    }).join('');
+  }
+  var ICO_WALLET = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H5a2 2 0 0 1 0-4h13v4"/><path d="M20 7a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5"/><circle cx="16.5" cy="13.5" r="1.4" fill="currentColor" stroke="none"/></svg>';
+  var ICO_BAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2.5"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/></svg>';
+  var ICO_TAG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>';
+  var ICO_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+  function valStr(res) {
+    if (res.kind === 'fee') return MINUS + res.pct + '%';
+    return '+$' + groups(String(res.usd));
+  }
+  /* Баланс «до» и «после» — с учётом того, что приз мог быть уже начислен. */
+  function balPair(res) {
+    var done = !!res.credited;
+    if (res.kind === 'usd') return { a: done ? S.cash - res.usd : S.cash, b: done ? S.cash : S.cash + res.usd };
+    var h = S.hold[res.id];
+    return { a: done ? h - res.qty : h, b: done ? h : h + res.qty };
+  }
+  function fillCard(L) {
+    var res = L.res, sec = L.sec, lbl = $('#rv-lbl'), near = $('#rv-near'), chip = $('#rv-chip'), bal = $('#rv-bal');
+    lbl.textContent = res ? 'Поздравляем!' : '';
+    letters($('#rv-title'), L.jack ? 'Джекпот!' : res ? 'Твой приз' : 'Мимо!');
+    $('#rv-panel').hidden = !res;
+    near.hidden = !!res;
+    chip.hidden = !res || res.kind === 'usd';
+    if (bal.__stop) bal.__stop();
+    if (!res) {
+      /* Честная подсказка: соседний сектор с самым крупным призом. */
+      var secs = SECS[L.mode], n = secs.length, a = secs[(L.idx + n - 1) % n], b = secs[(L.idx + 1) % n], best = (b.usd || 0) > (a.usd || 0) ? b : a;
+      near.innerHTML = 'Совсем рядом был ' + smallIcon(null, best) + '<b>' + esc(best.label) + '</b>';
+      $('#rv-ico').innerHTML = ICO_CLOCK;
+      $('#rv-sub').textContent = 'Повезёт в следующий раз';
+      bal.textContent = '';
+      return;
+    }
+    valOdo.build(valStr(res), true);
+    if (res.kind === 'crypto') {
+      chip.innerHTML = smallIcon(res) + '<b class="mono">+' + qty(res.qty) + ' ' + res.t + '</b>';
+      $('#rv-ico').innerHTML = ICO_BAG;
+      $('#rv-sub').textContent = 'Зачислено в портфель';
+      bal.textContent = 'Всего: ' + qtyShort(balPair(res).a) + ' ' + res.t;
+    } else if (res.kind === 'fee') {
+      chip.innerHTML = smallIcon(res) + '<b>на ' + res.trades + ' сделки</b>';
+      $('#rv-ico').innerHTML = ICO_TAG;
+      $('#rv-sub').textContent = 'Скидка на комиссию для следующих ' + res.trades + ' сделок';
+      bal.innerHTML = 'Комиссия: <s>' + FEE_BASE + '%</s>→ ' + (FEE_BASE * (1 - res.pct / 100)) + '%';
+    } else {
+      $('#rv-ico').innerHTML = ICO_WALLET;
+      $('#rv-sub').textContent = 'Зачислено на баланс';
+      bal.textContent = 'Баланс: ' + money(balPair(res).a, 0);
+    }
+  }
+  function medalPt() { return relRect($('#rv-medal')); }
+  function reveal(L) {
+    clearTimers();
+    RV.open = true;
+    RV.closing = false;
+    RV.L = L;
+    fillCard(L);
+    rv.hidden = false;
+    rv.className = 'rv' + (L.res ? '' : ' miss') + (L.jack ? ' jack' : '');
+    card.className = 'rv-card';
+    card.style.cssText = '';
+    fxSize();
+    var m = RV.m = medalPt(), rr = rv.getBoundingClientRect(), ar = app.getBoundingClientRect();
+    rv.style.setProperty('--mx', (m.x - (rr.left - ar.left)) + 'px');
+    rv.style.setProperty('--my', (m.y - (rr.top - ar.top)) + 'px');
+    reflow(rv);
+    rv.classList.add('on');
+    $('#sbody').classList.add('deep');
+    if (!L.res) { missSeq(L); return; }
+    tok.className = 'tok' + (L.jack ? ' jack' : '') + (L.res.kind === 'fee' ? ' fee' : '');
+    $$('.tok-face', tok).forEach(function (f) { f.innerHTML = faceHtml(L.res); });
+    tok.hidden = false;
+    stopTok();
+    if (RM.matches) { tok.style.transform = T(m.x, m.y, 1); impact(L, true); return; }
+    fly(L, m);
+  }
+  /* Монета отрывается от сектора, подскакивает и по дуге летит в центр. */
+  function fly(L, m) {
+    var s = wheelPt(ICON_R), s0 = (8.4 + 1.6) * 2 * s.k / SZ, jack = L.jack;
+    var sic = $('#sic-' + L.idx);
+    if (sic) sic.classList.add('gone');
+    tok.style.transform = T(s.x, s.y, s0);
+    sparks(s.x, s.y, 12, 160);
+    var lx = s.x, ly = s.y - 30;
+    var pop = anim(tok, [
+      { transform: T(s.x, s.y, s0) },
+      { transform: T(s.x, s.y - 14, s0 * 1.7), offset: 0.5 },
+      { transform: T(lx, ly, s0 * 1.5) }
+    ], { duration: 320, easing: 'cubic-bezier(.3,1.5,.5,1)', fill: 'forwards' });
+    anim(tok3d, [{ transform: 'rotateZ(0)' }, { transform: 'rotateZ(-14deg)', offset: 0.4 }, { transform: 'rotateZ(10deg)', offset: 0.75 }, { transform: 'rotateZ(0)' }], { duration: 320 });
+    pop.onfinish = function () {
+      var side = (Math.random() < 0.5 ? -1 : 1) * rnd(50, 90), cx = lerp(lx, m.x, 0.5) + side, cy = Math.min(ly, m.y) - rnd(70, 110), fr = [];
+      for (var i = 0; i <= 20; i++) {
+        var t = i / 20, u = 1 - t, x = u * u * lx + 2 * u * t * cx + t * t * m.x, y = u * u * ly + 2 * u * t * cy + t * t * m.y;
+        fr.push({ transform: T(x, y, lerp(s0 * 1.5, 1, easeOut(t))) });
+      }
+      var dur = jack ? 1050 : 880, turns = jack ? 1080 : 720;
+      var fl = anim(tok, fr, { duration: dur, easing: 'cubic-bezier(.45,.05,.35,1)', fill: 'forwards' });
+      anim(tok3d, [{ transform: 'rotateY(0) rotateZ(0)' }, { transform: 'rotateY(' + turns * 0.8 + 'deg) rotateZ(-10deg)', offset: 0.7 }, { transform: 'rotateY(' + turns + 'deg) rotateZ(0)' }], { duration: dur, easing: 'cubic-bezier(.3,.6,.35,1)', fill: 'forwards' });
+      var n = 0;
+      (function trail() {
+        var c = relRect(tok);
+        if (n++ % 2 === 0) sparks(c.x, c.y, 2, 60);
+        RV.trail = requestAnimationFrame(trail);
+      })();
+      fl.onfinish = function () {
+        cancelAnimationFrame(RV.trail);
+        tok.style.transform = T(m.x, m.y, 1);
+        stopTok();
+        impact(L, false);
+      };
+    };
+  }
+  function impact(L, instant) {
+    var m = RV.m, res = L.res, jack = L.jack;
+    rv.classList.add('hit');
+    if (!instant) {
+      anim(tok, [{ transform: T(m.x, m.y, 1.18) }, { transform: T(m.x, m.y + 3, 0.92) }, { transform: T(m.x, m.y, 1.04) }, { transform: T(m.x, m.y, 1) }], { duration: 520, easing: 'ease-out' });
+      sparks(m.x, m.y, jack ? 40 : 26, jack ? 520 : 380);
+      fountain(m.x, m.y, jack ? 34 : 18, res.kind === 'crypto' ? res.id : null);
+      if (jack) {
+        restart($('#edge'), 'gold');
+        anim($('#sbody'), [{ transform: 'none' }, { transform: 'translate(-6px,3px)' }, { transform: 'translate(5px,-4px)' }, { transform: 'translate(-4px,2px)' }, { transform: 'translate(2px,-1px)' }, { transform: 'none' }], { duration: 440 });
+        later(function () { confetti(110, 1600); }, 120);
+        later(function () { fountain(m.x, m.y, 24, res.id); sparks(m.x, m.y, 20, 420); }, 560);
+      }
+    }
+    later(function () { tok.classList.add('idle'); }, 600);
+    later(function () { card.classList.add('open', 'go'); }, instant ? 0 : 60);
+    later(function () { valOdo.set(valStr(res)); }, 380);
+    later(function () {
+      var v = $('#rv-val'), pr = relRect(v);
+      restart(v, 'pop');
+      restart($('#rv-panel'), 'shine');
+      sparks(pr.x - pr.w / 2, pr.y, 8, 140);
+      sparks(pr.x + pr.w / 2, pr.y, 8, 140);
+    }, 1500);
+    if (res.kind !== 'fee') {
+      later(function () {
+        var p = balPair(res), b = $('#rv-bal');
+        if (res.kind === 'usd') countTo(b, p.a, p.b, function (x) { return 'Баланс: ' + money(x, 0); }, 900);
+        else countTo(b, p.a, p.b, function (x) { return 'Всего: ' + qtyShort(x) + ' ' + res.t; }, 900);
+      }, 820);
+    }
+    later(function () { S.busy = false; syncGo(); $('#rv-again').focus({ preventScroll: true }); }, 900);
+  }
+  /* «Мимо» без праздника: из пустого сектора — пыль, карточка тяжело падает сверху. */
+  function missSeq(L) {
+    var s = wheelPt(63);
+    tok.hidden = true;
+    dust(s.x, s.y, 18);
+    later(function () { card.classList.add('drop', 'go'); }, 200);
+    later(function () { restart($('#rv-miss'), 'shake'); }, 820);
+    later(function () { S.busy = false; syncGo(); $('#rv-again').focus({ preventScroll: true }); }, 700);
+  }
+  /* Забрать приз: монета улетает в баланс в шапке, карточка сворачивается. */
+  function claim(after) {
+    if (!RV.open || RV.closing) return;
+    RV.closing = true;
+    clearTimers();
+    var L = RV.L, res = L.res, capEl = $('#cap'), from = capital(), fresh = credit(res), to = capital();
+    card.classList.remove('open', 'drop');
+    card.classList.add('closing');
+    rv.classList.remove('on');
+    rv.classList.add('closing');
+    $('#sbody').classList.remove('deep');
+    function done() {
+      rv.hidden = true;
+      rv.className = 'rv';
+      RV.open = false;
+      RV.closing = false;
+      restoreIcons();
+      syncGo();
+      if (after) after();
+    }
+    function hit() {
+      restart(capEl, 'hit');
+      var c = relRect(capEl);
+      sparks(c.x, c.y, 14, 200);
+      if (fresh && res.kind !== 'fee') countTo(capEl, from, to, function (x) { return money(x, 0); }, 800);
+      toast(res.kind === 'fee' ? 'Скидка активна: −' + res.pct + '% на ' + res.trades + ' сделки' : res.kind === 'crypto' ? '+' + qty(res.qty) + ' ' + res.t + ' в портфеле' : 'Выигрыш ' + money(res.usd, 0) + ' зачислен', 'gold', { img: res.id ? IMG[res.id] : null, sub: fresh ? 'Капитал ' + money(to, 0) : 'Уже начислено — это повтор выпадения' });
+    }
+    if (res && !tok.hidden && !RM.matches) {
+      tok.classList.remove('idle');
+      var m = RV.m, c = relRect(capEl), cx = lerp(m.x, c.x, 0.5) - 40, cy = Math.min(m.y, c.y) - 50, fr = [];
+      for (var i = 0; i <= 16; i++) {
+        var t = i / 16, u = 1 - t, x = u * u * m.x + 2 * u * t * cx + t * t * c.x, y = u * u * m.y + 2 * u * t * cy + t * t * c.y;
+        fr.push({ transform: T(x, y, lerp(1, 0.22, easeOut(t))), opacity: t > 0.9 ? 0.4 : 1 });
+      }
+      anim(tok3d, [{ transform: 'rotateY(0)' }, { transform: 'rotateY(540deg)' }], { duration: 640, easing: 'ease-in' });
+      var fl = anim(tok, fr, { duration: 640, easing: 'cubic-bezier(.5,0,.3,1)', fill: 'forwards' });
+      fl.onfinish = function () { tok.hidden = true; stopTok(); hit(); };
+      setTimeout(done, D(360));
+    } else {
+      tok.hidden = true;
+      if (res) hit();
+      setTimeout(done, D(300));
+    }
+  }
+  function hardClose() {
+    clearTimers();
+    stopTok();
+    tok.hidden = true;
+    rv.hidden = true;
+    rv.className = 'rv';
+    RV.open = false;
+    RV.closing = false;
+    $('#sbody').classList.remove('deep');
+  }
+  function replay() {
+    var L = S.last;
+    if (!L) { toast('Сначала покрутите колесо', 'info'); return; }
+    if (S.busy && !RV.open) return;
+    closeDemo();
+    if (RV.open) hardClose();
+    if (S.mode !== L.mode) applyMode(L.mode, true);
+    var step = 360 / SECS[L.mode].length;
+    if (restStop) restStop();
+    setAngle(-(L.idx * step + step / 2));
+    restoreIcons();
+    S.busy = true;
+    syncGo();
+    stage.classList.remove('is-landed', 'is-ready');
+    reflow(stage);
+    stage.classList.add('is-landed');
+    stage.classList.toggle('is-jackpot', L.jack);
+    restart(ptr, 'catch');
+    showWin(!L.res);
+    setTimeout(function () { reveal(L); }, D(L.res ? 520 : 650));
+  }
+
+  /* ---------------- Табло ---------------- */
+
+  function Odo(el) {
+    var o = { sk: null, reels: [] }, DIG = '';
+    for (var d = 0; d < 10; d++) DIG += '<span>' + d + '</span>';
+    o.build = function (str, zero) {
+      o.sk = str.replace(/\d/g, '0');
+      var html = '', j = 0;
+      for (var i = 0; i < str.length; i++) {
+        var ch = str.charAt(i);
+        if (/\d/.test(ch)) html += '<span class="od-c" aria-hidden="true"><span class="od-r" style="--v:' + (zero ? 0 : ch) + ';--j:' + (j++) + '">' + DIG + '</span></span>';
+        else html += '<span aria-hidden="true">' + (ch === NB ? '&nbsp;' : esc(ch)) + '</span>';
+      }
+      el.classList.add('instant');
+      el.innerHTML = html;
+      o.reels = $$('.od-r', el);
+      el.setAttribute('aria-label', str);
+      reflow(el);
+      el.classList.remove('instant');
+    };
+    o.set = function (str) {
+      if (str.replace(/\d/g, '0') !== o.sk) { o.build(str, false); return; }
+      var k = 0;
+      for (var i = 0; i < str.length; i++) if (/\d/.test(str.charAt(i))) o.reels[k++].style.setProperty('--v', str.charAt(i));
+    };
+    return o;
+  }
+
+  /* ---------------- Режим, кнопки, тосты ---------------- */
+
+  function syncGo() {
+    var b = $('#wgo'), vip = S.mode === 'vip';
+    b.disabled = S.busy;
+    $('#wgo-t').textContent = S.busy ? 'Крутим…' : vip ? 'Смотреть и крутить' : 'Крутить';
+    $('#wgo-s').textContent = S.busy ? 'Колесо уже в движении' : vip ? 'Награды ×10 за просмотр рекламы' : 'Раз в 6 часов';
+    stage.classList.toggle('is-ready', !S.busy && !RV.open);
+  }
+  function applyMode(m, instant) {
+    S.mode = m;
+    app.classList.toggle('vip', m === 'vip');
+    $$('.ssw').forEach(function (b) { var on = b.getAttribute('data-mode') === m; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    $$('.dbtn2[data-mode]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-mode') === m); });
+    $('#tt-sub').textContent = m === 'vip' ? 'За просмотр рекламы' : 'Раз в 6 часов';
+    $('#wnote').textContent = m === 'vip' ? 'Золотой спин — награды крупнее в 10 раз' : 'Обычный спин — без рекламы';
+    clearWin();
+    stage.classList.remove('is-landed', 'is-jackpot');
+    syncGo();
+    var wh = $('#wwheel'), out = instant ? null : anim(wh, [{ transform: 'none', opacity: 1 }, { transform: 'scale(.9) rotate(-10deg)', opacity: 0.3 }], { duration: 200, easing: 'ease-in', fill: 'forwards' });
+    function rebuild() {
+      build();
+      if (out) out.cancel();
+      if (instant) { setAngle(restAngle()); return; }
+      anim(wh, [{ transform: 'scale(.9) rotate(10deg)', opacity: 0.3 }, { transform: 'none', opacity: 1 }], { duration: 480, easing: 'cubic-bezier(.2,1.3,.4,1)' });
+      tweenRest(720);
+    }
+    if (out) out.onfinish = rebuild; else rebuild();
+  }
+  function setMode(m) {
+    if (S.busy || m === S.mode) return;
+    if (RV.open) { claim(function () { setMode(m); }); return; }
+    applyMode(m, false);
+  }
+  /* Подкрутка исхода для демо: индексы секторов из js/data.js. */
+  var FORCE = { usd: { free: 1, vip: 2 }, crypto: { free: 4, vip: 1 }, fee: { vip: 5 }, jack: { free: 2, vip: 0 }, miss: { free: 3 } };
+  function forceSpin(kind) {
+    if (S.busy) return;
+    var map = FORCE[kind], mode = map[S.mode] != null ? S.mode : map.free != null ? 'free' : 'vip';
+    function go() {
+      if (mode !== S.mode) { applyMode(mode, false); setTimeout(function () { S.force = map[mode]; spin(); }, D(760)); }
+      else { S.force = map[mode]; spin(); }
+    }
+    closeDemo();
+    if (RV.open) claim(go); else go();
+  }
+  function toast(title, tone, o) {
+    o = o || {};
+    var box = $('#toasts'), el = document.createElement('div');
+    el.className = 'toast t-' + (tone || 'info');
+    el.innerHTML = '<span class="t-ico">' + (o.img ? '<img src="' + o.img + '" alt="">' : '<svg viewBox="0 0 24 24"><path d="M12 3.2l2.5 5.3 5.8.7-4.3 4 1.1 5.7L12 16.1 6.9 18.9 8 13.2 3.7 9.2l5.8-.7z"/></svg>') + '</span><span class="t-txt"><b></b>' + (o.sub ? '<i></i>' : '') + '</span><i class="t-life"></i>';
+    $('.t-txt b', el).textContent = title;
+    if (o.sub) $('.t-txt i', el).textContent = o.sub;
+    box.insertBefore(el, box.firstChild);
+    while (box.children.length > 3) box.removeChild(box.lastChild);
+    function kill() { if (el.classList.contains('out')) return; el.classList.add('out'); setTimeout(function () { el.remove(); }, 300); }
+    el.addEventListener('click', kill);
+    setTimeout(kill, 2800);
+  }
+  function setTheme(th, btn) {
+    function apply() {
+      app.setAttribute('data-theme', th);
+      $$('[data-theme-set]').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-theme-set') === th); });
+    }
+    if (document.startViewTransition && !RM.matches && btn) {
+      var r = btn.getBoundingClientRect();
+      document.documentElement.style.setProperty('--vx', (r.left + r.width / 2) + 'px');
+      document.documentElement.style.setProperty('--vy', (r.top + r.height / 2) + 'px');
+      document.startViewTransition(apply);
+    } else apply();
+  }
+  function openDemo() { $('#dsheet').classList.add('on'); }
+  function closeDemo() { $('#dsheet').classList.remove('on'); }
+
+  /* ---------------- События ---------------- */
+
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-act], [data-mode], [data-force], [data-theme-set]');
+    if (!t) return;
+    if (t.hasAttribute('data-theme-set')) { setTheme(t.getAttribute('data-theme-set'), t); return; }
+    if (t.hasAttribute('data-mode')) { closeDemo(); setMode(t.getAttribute('data-mode')); return; }
+    if (t.hasAttribute('data-force')) { forceSpin(t.getAttribute('data-force')); return; }
+    var act = t.getAttribute('data-act');
+    if (act === 'spin') spin();
+    else if (act === 'claim') claim();
+    else if (act === 'again') claim(spin);
+    else if (act === 'lobby') claim(function () { setTimeout(function () { toast('Здесь игра вернётся в лобби', 'info', { sub: 'Это концепт колеса удачи' }); }, D(1100)); });
+    else if (act === 'back') toast('Это концепт колеса удачи', 'info', { sub: 'Кнопка «Назад» ведёт в лобби игры' });
+    else if (act === 'replay') replay();
+    else if (act === 'slow') {
+      K = K === 1 ? 3 : 1;
+      app.style.setProperty('--k', K);
+      $$('[data-act="slow"]').forEach(function (b) { b.setAttribute('aria-pressed', K === 3 ? 'true' : 'false'); });
+      toast(K === 3 ? 'Анимации замедлены в 3 раза' : 'Обычная скорость анимаций', 'info');
+    }
+    else if (act === 'open-demo') openDemo();
+    else if (act === 'close-demo') closeDemo();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if ($('#dsheet').classList.contains('on')) closeDemo(); else if (RV.open) claim();
+  });
+  window.addEventListener('resize', function () {
+    fxSize();
+    if (RV.open && !RV.closing && !tok.hidden && tok.classList.contains('idle')) { RV.m = medalPt(); tok.style.transform = T(RV.m.x, RV.m.y, 1); }
+  });
+
+  /* ---------------- Старт ---------------- */
+
+  $$('img[data-img]').forEach(function (i) { i.src = IMG[i.getAttribute('data-img')] || ''; });
+  $('#dctl-slot').appendChild((function () { var c = $('#dctl').cloneNode(true); c.removeAttribute('id'); return c; })());
+  $('#wbulbs').innerHTML = Array.apply(null, Array(24)).map(function (_, i) { return '<i style="--i:' + i + '"></i>'; }).join('');
+  $('#cap').textContent = money(capital(), 0);
+  ['bitcoin', 'ethereum', null].forEach(coinSprite);
+  build();
+  setAngle(restAngle() + 200);
+  tweenRest(900);
+  syncGo();
+  fxSize();
+})();
+</script>
+</body>
+</html>

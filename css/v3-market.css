@@ -1,0 +1,775 @@
+/* v3 — слой вкладки «market» по concept/market.html.
+   Переключатель Спот/Фьючерсы, «Пульс рынка», прилипающий поиск с лентой
+   категорий, шапка списка, плотные строки с плашкой изменения, пустой
+   поиск; фьючерсные строки и карточка «Счета» — в том же стиле. */
+
+#tab-market {
+  --mk-hot: #ff9f43; --mk-hot-dim: rgba(255, 159, 67, 0.14);
+  --mk-bar: color-mix(in srgb, var(--bg) 86%, transparent);
+}
+:root[data-theme="light"] #tab-market { --mk-hot: #c25e0a; --mk-hot-dim: rgba(222, 110, 20, 0.12); }
+#tab-market.is-fut > .mk-spot-only { display: none; }
+
+/* ---------------- Спот / Фьючерсы ---------------- */
+
+#mkt-seg.fut-seg {
+  padding: 4px;
+  border-radius: 16px;
+  background: var(--sheen), var(--card);
+  border: 1px solid var(--border);
+  box-shadow: var(--card-shadow);
+}
+#mkt-seg.fut-seg button { height: 40px; padding: 0 8px; border-radius: 12px; font-size: 14.5px; font-weight: 800; color: var(--muted); transition: color 0.25s; }
+#mkt-seg.fut-seg button.active { color: var(--primary-text); }
+#mkt-seg .seg-indicator {
+  top: 4px; bottom: 4px; left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 12px;
+  background: var(--gold-grad);
+  box-shadow: 0 6px 14px -6px rgba(233, 182, 64, 0.85);
+  transition: transform calc(var(--k) * 460ms) cubic-bezier(0.5, 0, 0.1, 1);
+}
+.mk-seg-n {
+  font-style: normal; min-width: 22px; padding: 1px 6px; border-radius: 99px;
+  font-size: 11px; font-weight: 800; text-align: center;
+  background: var(--card2); color: var(--muted);
+  transition: background-color 0.25s, color 0.25s;
+}
+#mkt-seg button.active .mk-seg-n { background: rgba(34, 23, 3, 0.16); color: var(--primary-text); }
+#mkt-seg .fut-seg-badge { min-width: 17px; height: 17px; line-height: 17px; font-size: 10px; margin-left: -3px; }
+
+/* ---------------- Пульс рынка ---------------- */
+
+.mkp {
+  padding: 14px 14px 12px;
+  overflow: hidden;
+  border-color: var(--gold-border);
+  background: radial-gradient(280px 170px at 0% -20%, var(--gold-soft), transparent 70%), var(--sheen), var(--card);
+}
+.mkp-defs { position: absolute; width: 0; height: 0; }
+.mkp-defs .s1 { stop-color: var(--up); stop-opacity: 0.28; }
+.mkp-defs .s0 { stop-color: var(--up); stop-opacity: 0; }
+.mkp-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.mkp-kick { display: inline-flex; align-items: center; gap: 7px; min-width: 0; white-space: nowrap; }
+.mkp-upd { font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.mkp-mid { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-top: 10px; }
+.mkp-main { min-width: 0; }
+.mkp-cap-row { display: flex; align-items: baseline; gap: 6px; }
+.mkp-cap { font-size: 31px; font-weight: 850; letter-spacing: -0.025em; line-height: 1.05; white-space: nowrap; }
+.mkp-cap .odo { line-height: 1.05; }
+.mkp-cap .odo .cents { opacity: 1; }
+/* Вход на вкладку: барабаны крутятся дольше и волной по цифрам (big-roll концепта). */
+.mkp-cap.mkp-roll .odo-d > span { transition-duration: calc(var(--k) * 950ms); transition-delay: calc(var(--j, 0) * 34ms * var(--k)); }
+.mkp-unit { font-size: 15px; font-weight: 800; color: var(--muted); }
+.mkp-sub { display: flex; align-items: center; gap: 8px; margin-top: 7px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.mkp-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 9px 3px 6px; border-radius: 99px;
+  font-size: 12.5px; font-weight: 800;
+  color: var(--up); background: var(--up-dim);
+  transition: color 0.4s, background-color 0.4s;
+}
+.mkp-pill svg { width: 13px; height: 13px; transition: transform calc(var(--k) * 450ms) var(--spring); }
+.mkp-pill.down { color: var(--down); background: var(--down-dim); }
+.mkp-pill.down svg { transform: rotate(180deg); }
+
+.mkp-fg {
+  flex: none; width: 96px;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 7px 6px 6px; border-radius: 15px;
+  background: var(--card2); border: 1px solid var(--border);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 0.14s var(--ease), border-color 0.25s;
+}
+.mkp-fg:hover { border-color: var(--gold-border); }
+.mkp-fg:active { transform: scale(0.95); }
+.mkp-fg:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gold); }
+.mkp-fg svg { width: 78px; height: 44px; overflow: visible; }
+.mkp-fg-t { fill: none; stroke: var(--track); stroke-width: 8; stroke-linecap: round; }
+.mkp-fg-a { fill: none; stroke: url(#mkp-fg-grad); stroke-width: 8; stroke-linecap: round; stroke-dasharray: 0 100; transition: stroke-dasharray calc(var(--k) * 1100ms) cubic-bezier(0.3, 1.1, 0.4, 1); }
+.mkp-fg-n { transform-box: view-box; transform-origin: 50px 50px; transform: rotate(-90deg); transition: transform calc(var(--k) * 1150ms) cubic-bezier(0.34, 1.45, 0.55, 1); }
+.mkp-fg-n line { stroke: var(--text); stroke-width: 3; stroke-linecap: round; }
+.mkp-fg-n circle { fill: var(--text); }
+.mkp-fg b { margin-top: -2px; font-size: 18px; font-weight: 850; line-height: 1.1; }
+.mkp-fg i { font-style: normal; font-size: 10.5px; font-weight: 800; color: var(--fgc, var(--gold)); transition: color 0.4s; white-space: nowrap; }
+
+.mkp-chart { position: relative; height: 62px; margin: 8px -14px 0; }
+.mkp-chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+#mkp-line { fill: none; stroke: var(--up); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; transition: stroke 0.5s; }
+#mkp-area { fill: url(#mkp-ga); }
+#mkp-dot { fill: var(--up); stroke: var(--card); stroke-width: 2.5; }
+#mkp-ring { fill: var(--up); opacity: 0.35; transform-box: fill-box; transform-origin: center; animation: mkpRing calc(var(--k) * 1.8s) ease-out infinite; }
+.mkp-chart.down #mkp-line { stroke: var(--down); }
+.mkp-chart.down #mkp-dot, .mkp-chart.down #mkp-ring { fill: var(--down); }
+.mkp-chart.down ~ .mkp-defs .s1, .mkp:has(.mkp-chart.down) .mkp-defs .s1 { stop-color: var(--down); }
+.mkp:has(.mkp-chart.down) .mkp-defs .s0 { stop-color: var(--down); }
+@keyframes mkpRing { from { transform: scale(1); opacity: 0.45; } to { transform: scale(3.4); opacity: 0; } }
+
+.mkp-breadth { display: flex; align-items: center; gap: 9px; margin-top: 10px; font-size: 11.5px; font-weight: 800; white-space: nowrap; }
+.mkp-breadth .up { color: var(--up); }
+.mkp-breadth .down { color: var(--down); }
+.mkp-breadth b { font-size: 13px; }
+.mkp-bar { flex: 1; display: flex; gap: 3px; height: 8px; }
+.mkp-bar i { min-width: 6px; height: 100%; border-radius: 99px; flex: 1 1 0; transition: flex-grow calc(var(--k) * 900ms) cubic-bezier(0.5, 0, 0.1, 1); }
+.mkp-bar .u { background: linear-gradient(90deg, var(--up), var(--up) 70%, color-mix(in srgb, var(--up) 55%, transparent)); }
+.mkp-bar .d { background: linear-gradient(90deg, color-mix(in srgb, var(--down) 55%, transparent), var(--down) 30%); }
+
+/* Фьючерсы: обзор рынка заменён общим «Пульсом». */
+#fut-view #mk-cards { display: none; }
+
+/* ---------------- Поиск и лента категорий (прилипают) ---------------- */
+
+.mk-tools {
+  position: sticky;
+  top: -4px;
+  z-index: 8;
+  margin: 0 -12px;
+  padding: 8px 12px;
+  background: var(--mk-bar);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border-bottom: 1px solid transparent;
+  transition: box-shadow 0.3s, border-color 0.3s;
+}
+.mk-tools.stuck { border-bottom-color: var(--border); box-shadow: 0 12px 24px -18px rgba(0, 0, 0, 0.8); }
+:root[data-theme="light"] .mk-tools.stuck { box-shadow: 0 12px 24px -18px rgba(28, 25, 19, 0.35); }
+
+.mk-tools .search-card {
+  position: relative;
+  display: flex; align-items: center; gap: 8px;
+  padding: 0; margin: 0;
+  background: none; border: 0; box-shadow: none; border-radius: 0;
+  animation: none;
+}
+.mk-tools .search-card input {
+  height: 44px;
+  padding: 0 44px 0 38px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  font-size: 15px;
+  font-weight: 650;
+  transition: border-color 0.25s, box-shadow 0.3s;
+}
+.mk-tools .search-card input:focus { border-color: var(--gold-border); box-shadow: 0 0 0 4px var(--gold-soft); }
+.mk-tools .search-card input::-webkit-search-cancel-button { display: none; }
+.mk-tools .search-card input::placeholder { color: transparent; }
+.mk-mag {
+  position: absolute; left: 12px; top: 13px; z-index: 1;
+  width: 18px; height: 18px; color: var(--muted); pointer-events: none;
+  transition: color 0.2s, transform calc(var(--k) * 400ms) var(--spring);
+}
+.search-card:focus-within .mk-mag { color: var(--gold); transform: scale(1.12) rotate(-10deg); }
+.mk-ph {
+  position: absolute; left: 38px; right: 104px; top: 50%;
+  height: 20px; margin-top: -10px;
+  overflow: hidden; pointer-events: none;
+  color: var(--muted); font-size: 15px; font-weight: 600; white-space: nowrap;
+  transition: opacity 0.2s;
+}
+.mk-ph span { position: absolute; left: 0; top: 0; line-height: 20px; }
+.mk-ph span.in { animation: mkPhIn calc(var(--k) * 450ms) var(--ease) both; }
+.mk-ph span.out { animation: mkPhOut calc(var(--k) * 350ms) ease-in both; }
+.mk-ph b { color: var(--text); opacity: 0.75; font-weight: 700; }
+.search-card input:not(:placeholder-shown) ~ .mk-ph { opacity: 0; }
+@keyframes mkPhIn { from { transform: translateY(100%); opacity: 0; } }
+@keyframes mkPhOut { to { transform: translateY(-100%); opacity: 0; } }
+.mk-tools .search-clear { right: 59px; width: 28px; height: 28px; border-radius: 10px; background: var(--card2); color: var(--muted); font-size: 12px; }
+
+.mk-tools .sort-btn {
+  position: relative;
+  width: 44px; height: 44px;
+  border-radius: 14px;
+  background: var(--sheen), var(--card);
+  border: 1px solid var(--border);
+  color: var(--gold);
+  box-shadow: var(--card-shadow);
+  transition: transform 0.14s var(--ease), border-color 0.2s;
+}
+.mk-tools .sort-btn svg { width: 20px; height: 20px; }
+.mk-tools .sort-btn circle { transition: transform calc(var(--k) * 450ms) var(--spring); }
+.mk-tools .sort-btn:hover .k1, .mk-tools .sort-btn:focus-visible .k1 { transform: translateX(-5px); }
+.mk-tools .sort-btn:hover .k2, .mk-tools .sort-btn:focus-visible .k2 { transform: translateX(5px); }
+.mk-tools .sort-btn:hover .k3, .mk-tools .sort-btn:focus-visible .k3 { transform: translateX(-4px); }
+.mk-tools .sort-btn:hover { border-color: var(--gold-border); }
+/* Категория теперь видна в ленте, поэтому кнопка не заливается —
+   только точка, если сортировка отличается от стандартной. */
+.mk-tools .sort-btn.on { background: var(--sheen), var(--card); color: var(--gold); border-color: var(--border); }
+.mk-tools .sort-btn.mod::after {
+  content: ""; position: absolute; top: 7px; right: 7px;
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--gold); box-shadow: 0 0 0 2px var(--card);
+  animation: v3Pop calc(var(--k) * 400ms) var(--spring);
+}
+
+.mk-chips {
+  position: relative;
+  display: flex; gap: 6px;
+  margin: 8px -12px 0; padding: 0 12px;
+  overflow-x: auto; scrollbar-width: none;
+  touch-action: pan-x;
+}
+.mk-chips::-webkit-scrollbar { display: none; }
+.mk-chip {
+  position: relative; z-index: 1; flex: none;
+  height: 34px;
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 0 7px 0 5px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: transparent;
+  font: inherit; font-size: 13px; font-weight: 800;
+  color: var(--muted); white-space: nowrap; cursor: pointer;
+  transition: color 0.3s, border-color 0.3s, transform 0.14s var(--ease);
+}
+.mk-chip:active { transform: scale(0.95); }
+.mk-chip img { width: 24px; height: 24px; transition: transform calc(var(--k) * 450ms) var(--spring); }
+.mk-chip.on img { transform: rotate(-8deg) scale(1.1); }
+.mk-chip em {
+  font-style: normal; min-width: 20px; padding: 1px 6px; border-radius: 99px;
+  font-size: 11px; text-align: center;
+  background: var(--card2); color: var(--muted);
+  transition: background-color 0.3s, color 0.3s;
+}
+.mk-chip.on { color: var(--primary-text); border-color: transparent; }
+.mk-chip.on em { background: rgba(34, 23, 3, 0.16); color: var(--primary-text); }
+.mk-chip.in { animation: mkChipIn calc(var(--k) * 450ms) var(--ease) both; animation-delay: calc(var(--i) * 32ms * var(--k) + 180ms * var(--k)); }
+@keyframes mkChipIn { from { opacity: 0; transform: translateX(22px) scale(0.9); } }
+.mk-cind {
+  position: absolute; z-index: 0; top: 0; left: 0;
+  height: 34px; width: 0;
+  border-radius: 99px;
+  background: var(--gold-grad);
+  box-shadow: 0 6px 16px -7px rgba(233, 182, 64, 0.9);
+  opacity: 0;
+  transition: transform calc(var(--k) * 500ms) cubic-bezier(0.5, 0, 0.1, 1), width calc(var(--k) * 500ms) cubic-bezier(0.5, 0, 0.1, 1);
+}
+
+/* ---------------- Шапка списка ---------------- */
+
+.mk-lhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: -4px; padding: 0 2px; }
+.mk-lh-n { font-size: 13px; font-weight: 800; color: var(--muted); }
+.mk-lh-n b { display: inline-block; font-size: 15px; color: var(--text); }
+.mk-lh-n b.bump { animation: mkBump calc(var(--k) * 450ms) var(--spring); }
+@keyframes mkBump { 40% { transform: scale(1.35); color: var(--gold); } }
+.mk-lh-sort {
+  display: inline-flex; align-items: center; gap: 6px;
+  height: 32px; padding: 0 10px 0 4px;
+  border-radius: 99px;
+  background: var(--card); border: 1px solid var(--border);
+  font: inherit; font-size: 12.5px; font-weight: 800; color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.14s var(--ease);
+}
+.mk-lh-sort:hover { border-color: var(--gold-border); }
+.mk-lh-sort:active { transform: scale(0.95); }
+.mk-lh-ico { width: 24px; height: 24px; display: grid; place-items: center; }
+.mk-lh-ico img, .mk-lh-ico svg { width: 24px; height: 24px; }
+.mk-lh-arr { width: 14px; height: 14px; color: var(--gold); transition: transform calc(var(--k) * 500ms) var(--spring); }
+.mk-lhead.asc .mk-lh-arr { transform: rotate(180deg); }
+.mk-lhead.az .mk-lh-arr { display: none; }
+.mk-lh-s.swap-in { display: inline-block; animation: mkPhIn calc(var(--k) * 400ms) var(--ease); }
+
+/* ---------------- Строки ---------------- */
+
+#market-list, #fut-list { position: relative; gap: 6px; }
+/* Ушедшая строка тает копией на старом месте, пока остальные переезжают. */
+#market-list > .mk-ghost, #fut-list > .mk-ghost { position: absolute; z-index: 0; margin: 0; pointer-events: none; animation: none; }
+#market-list .asset-row, #fut-list .fut-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 54px minmax(72px, auto) 26px;
+  align-items: center;
+  column-gap: 8px;
+  min-height: 64px;
+  padding: 9px 6px 9px 10px;
+  border-radius: 18px;
+  background: var(--sheen), var(--card);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+#fut-list .fut-row { grid-template-columns: 40px minmax(0, 1fr) 54px minmax(76px, auto) 26px; padding-right: 6px; }
+#market-list .asset-row:hover, #fut-list .fut-row:hover { border-color: var(--gold-border); }
+#market-list .asset-row:focus-visible, #fut-list .fut-row:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--gold); }
+#market-list .asset-row .coin, #fut-list .fut-row .coin {
+  width: 40px; height: 40px;
+  background: var(--card2);
+  box-shadow: 0 0 0 2.5px var(--card), 0 0 0 3.5px var(--border);
+}
+#market-list .asset-row .grow, #fut-list .fut-row .grow { gap: 3px; }
+#market-list .asset-row .grow b, #fut-list .fut-row .grow b { font-size: 14.5px; font-weight: 800; line-height: 1.2; }
+.mk-tkl { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 6px; min-width: 0; }
+.mk-tkl > i { font-style: normal; font-size: 12px; font-weight: 700; color: var(--muted); }
+#tab-market mark { background: var(--gold-soft); color: var(--gold); border-radius: 4px; box-shadow: 0 0 0 1px var(--gold-border); }
+#market-list .tag, #fut-list .fut-lev-badge, #fut-list .fut-fr {
+  display: inline-flex; align-items: center; gap: 3px;
+  height: 18px; margin: 0; padding: 0 6px;
+  border-radius: 6px; border: 0;
+  font-size: 10.5px; font-weight: 800; white-space: nowrap;
+}
+#market-list .tag-hot { color: var(--mk-hot); background: var(--mk-hot-dim); }
+#market-list .tag-up { color: var(--up); background: var(--up-dim); }
+#market-list .tag-pop { color: var(--muted); background: var(--card2); box-shadow: inset 0 0 0 1px var(--border); }
+#fut-list .fut-lev-badge { color: var(--gold); background: var(--gold-soft); }
+#fut-list .fut-fr { background: var(--card2); }
+#fut-list .fut-fr.up { background: var(--up-dim); }
+#fut-list .fut-fr.down { background: var(--down-dim); }
+#market-list .spark, #fut-list .spark { width: 54px; height: 24px; }
+#market-list .asset-row .right, #fut-list .fut-row .right { gap: 4px; min-width: 0; }
+#market-list .asset-row .right b, #fut-list .fut-row .right b { font-size: 14px; font-weight: 800; white-space: nowrap; }
+#market-list .asset-row .right i, #fut-list .fut-row .right i {
+  min-width: 62px; padding: 2px 6px; border-radius: 7px;
+  font-style: normal; font-size: 11.5px; font-weight: 800; text-align: center;
+  color: var(--up); background: var(--up-dim);
+  transition: color 0.4s, background-color 0.4s;
+}
+#market-list .asset-row .right i.down, #fut-list .fut-row .right i.down { color: var(--down); background: var(--down-dim); }
+#market-list .star-btn, #fut-list .star-btn { width: 26px; height: 32px; border-radius: 9px; }
+#market-list .star-btn svg, #fut-list .star-btn svg { width: 18px; height: 18px; stroke-width: 1.8; }
+#market-list .star-btn.burst svg, #fut-list .star-btn.burst svg { animation: mkStar calc(var(--k) * 550ms) var(--spring); }
+@keyframes mkStar { 0% { transform: scale(0.3) rotate(-50deg); } 60% { transform: scale(1.35) rotate(12deg); } 100% { transform: none; } }
+/* Цена: вспыхивают только изменившиеся цифры и гаснут до обычного цвета. */
+#tab-market .v3-fd.up { color: inherit; animation: mkDgUp calc(var(--k) * 1100ms) ease-out; }
+#tab-market .v3-fd.down { color: inherit; animation: mkDgDown calc(var(--k) * 1100ms) ease-out; }
+@keyframes mkDgUp { 0%, 30% { color: var(--up); text-shadow: 0 0 10px var(--up-dim); } }
+@keyframes mkDgDown { 0%, 30% { color: var(--down); text-shadow: 0 0 10px var(--down-dim); } }
+
+/* Избранное — своя группа сверху. */
+#market-list .row.asset-row.fav, #fut-list .row.fut-row.fav {
+  width: auto; margin-left: 0;
+  border: 1px solid var(--gold-border);
+  background: linear-gradient(100deg, var(--gold-soft), transparent 42%), var(--sheen), var(--card);
+  box-shadow: none;
+}
+#market-list .row.asset-row.fav .coin, #fut-list .row.fut-row.fav .coin { box-shadow: 0 0 0 2.5px var(--card), 0 0 0 3.5px var(--gold-border); }
+#market-list .row.asset-row.fav .star-btn, #fut-list .row.fut-row.fav .star-btn { background: none; }
+#market-list .star-btn.on svg, #fut-list .star-btn.on svg { fill: var(--gold); stroke: var(--gold); }
+#market-list .letter-h.fav-h, #market-list .letter-h.market-all-h, #fut-list .letter-h.fav-h, #fut-list .letter-h.market-all-h {
+  position: relative; top: auto; z-index: 1;
+  display: flex; align-items: center; justify-content: flex-start; gap: 7px;
+  min-height: 0; margin: 0; padding: 8px 4px;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--muted); background: none; border: 0; border-radius: 0;
+}
+#market-list .letter-h.fav-h, #fut-list .letter-h.fav-h { color: var(--gold); }
+#market-list .letter-h.market-all-h::after, #fut-list .letter-h.market-all-h::after { content: none; }
+#market-list .fav-h-title, #fut-list .fav-h-title { gap: 7px; }
+#market-list .fav-h-icon, #fut-list .fav-h-icon { width: 20px; height: 20px; border-radius: 7px; background: var(--gold-grad); transform: none; }
+#market-list .fav-h-icon svg, #fut-list .fav-h-icon svg { width: 12px; height: 12px; }
+#market-list .fav-h-count, #fut-list .fav-h-count {
+  min-width: 20px; height: auto; padding: 1px 6px; border-radius: 99px;
+  font-size: 11px; letter-spacing: 0;
+  background: var(--gold-soft); border: 1px solid var(--gold-border); color: var(--gold);
+}
+/* Буквы A–Z не прилипают: сверху уже прилипает панель поиска. */
+#market-list .letter-h:not(.fav-h):not(.market-all-h), #fut-list .letter-h:not(.fav-h):not(.market-all-h) {
+  position: relative; top: auto;
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 6px 6px; font-size: 13px; letter-spacing: 0;
+  background: none;
+}
+#market-list .letter-h:not(.fav-h):not(.market-all-h)::after, #fut-list .letter-h:not(.fav-h):not(.market-all-h)::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+
+/* Живая пересортировка: полоска слева — строка поднялась или опустилась. */
+#market-list .asset-row.mk-rise::before, #market-list .asset-row.mk-fall::before,
+#fut-list .fut-row.mk-rise::before, #fut-list .fut-row.mk-fall::before {
+  content: ""; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px;
+  border-radius: 0 3px 3px 0;
+  animation: mkMark calc(var(--k) * 1500ms) ease-out forwards;
+}
+#market-list .asset-row.mk-rise::before, #fut-list .fut-row.mk-rise::before { background: var(--up); box-shadow: 0 0 12px var(--up); }
+#market-list .asset-row.mk-fall::before, #fut-list .fut-row.mk-fall::before { background: var(--down); box-shadow: 0 0 12px var(--down); }
+@keyframes mkMark { 0%, 55% { opacity: 1; } 100% { opacity: 0; } }
+
+/* Каскад строк после полной пересборки списка. */
+#market-list > .mk-in, #fut-list > .mk-in { animation: mkRowIn calc(var(--k) * 560ms) var(--ease) backwards; animation-delay: calc(var(--d, 0) * 1ms * var(--k)); }
+@keyframes mkRowIn { from { opacity: 0; transform: translateY(22px) scale(0.97); } }
+/* Спарклайн строки дорисовывается слева направо чуть позже самой строки. */
+#market-list > .mk-in .spark, #fut-list > .mk-in .spark { animation: mkSpkIn calc(var(--k) * 900ms) ease-out backwards; animation-delay: calc((var(--d, 0) + 160) * 1ms * var(--k)); }
+@keyframes mkSpkIn { from { clip-path: inset(0 100% 0 0); opacity: 0.4; } to { clip-path: inset(0 0 0 0); opacity: 1; } }
+
+/* ---------------- «Потяните, чтобы обновить» ---------------- */
+
+#tab-market { position: relative; transition: translate 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.1); }
+#tab-market.mk-pulling { transition: none; }
+#tab-market > .mk-ptr {
+  position: absolute; left: 0; right: 0; top: 0; height: 60px; z-index: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  pointer-events: none; opacity: 0; animation: none;
+}
+.mk-ptr-coin {
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  font-style: normal; font-size: 15px; font-weight: 900; color: var(--primary-text);
+  background: var(--gold-grad);
+  box-shadow: 0 6px 14px -4px rgba(233, 182, 64, 0.75), inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+.mk-ptr span { font-size: 11.5px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.mk-ptr.spin .mk-ptr-coin { animation: mkCoinSpin 0.7s linear infinite; }
+@keyframes mkCoinSpin { to { transform: rotateY(360deg); } }
+
+/* Огонёк «В тренде» пляшет. */
+#market-list .tag-hot .mk-fl { display: inline-block; font-style: normal; transform-origin: 50% 90%; animation: mkFlick calc(var(--k) * 1.4s) ease-in-out infinite; }
+@keyframes mkFlick { 0%, 100% { transform: scale(1) rotate(0); } 30% { transform: scale(1.12, 0.94) rotate(-4deg); } 60% { transform: scale(0.95, 1.08) rotate(3deg); } }
+
+/* ---------------- Пустой поиск ---------------- */
+
+#market-list .empty-search {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 26px 16px 22px;
+  border-radius: 20px;
+  background: var(--sheen), var(--card);
+  border: 1px dashed var(--border);
+  animation: none;
+}
+#market-list .empty-search .empty-ico { width: 60px; height: 60px; margin-bottom: 4px; color: var(--muted); }
+/* Лупа с монетой, обе плавают (em-ico концепта). */
+#market-list .mk-em-ico { position: relative; width: 74px; height: 74px; margin-bottom: 6px; }
+#market-list .mk-em-ico svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--muted); stroke-width: 4; stroke-linecap: round; animation: mkEmFloat calc(var(--k) * 3s) ease-in-out infinite; }
+#market-list .mk-em-ico i {
+  position: absolute; left: 17px; top: 17px;
+  width: 24px; height: 24px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-style: normal; font-size: 13px; font-weight: 900;
+  color: var(--primary-text); background: var(--gold-grad);
+  animation: mkEmCoin calc(var(--k) * 3s) ease-in-out infinite;
+}
+@keyframes mkEmFloat { 50% { transform: translate(3px, -4px) rotate(-6deg); } }
+@keyframes mkEmCoin { 0%, 100% { transform: translate(0, 0) scale(0.9); } 50% { transform: translate(5px, -6px) scale(1); } }
+/* Содержимое входит лесенкой, как .empty концепта: 0 / 60 / 110 / 160 / 210 мс. */
+#market-list .empty-search > * { animation: v3RvIn calc(var(--k) * 500ms) var(--ease) both; }
+#market-list .empty-search > :nth-child(2) { animation-delay: calc(var(--k) * 60ms); }
+#market-list .empty-search > :nth-child(3) { animation-delay: calc(var(--k) * 110ms); }
+#market-list .empty-search > :nth-child(4) { animation-delay: calc(var(--k) * 160ms); }
+#market-list .empty-search > :nth-child(5) { animation-delay: calc(var(--k) * 210ms); }
+#market-list .empty-search b { font-size: 16px; font-weight: 850; }
+#market-list .empty-search .empty-hint {
+  display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px;
+  margin-top: 8px; opacity: 1; font-size: 12px; font-weight: 700; color: var(--muted);
+}
+.em-sug {
+  height: 28px; padding: 0 10px; border-radius: 99px;
+  border: 1px solid var(--border); background: var(--card2);
+  font: inherit; font-size: 12px; font-weight: 800; color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s, transform 0.14s var(--ease);
+}
+.em-sug:hover { border-color: var(--gold-border); color: var(--gold); }
+.em-sug:active { transform: scale(0.94); }
+#market-list .empty-search .empty-btn {
+  margin-top: 10px; height: 38px; padding: 0 16px; border-radius: 12px;
+  border: 1px solid var(--gold-border); background: var(--gold-soft); color: var(--gold);
+  font-size: 13px; font-weight: 850;
+}
+#fut-list .fut-empty--search {
+  padding: 26px 16px 22px; border-radius: 20px;
+  background: var(--sheen), var(--card); border: 1px dashed var(--border);
+}
+
+/* ---------------- Фьючерсы: «Счета» ---------------- */
+
+#fut-view .fut-xfer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 22px;
+}
+.mk-xf-top { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+.mk-xf-h { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+/* Отсчёт до фандинга: кольцо заполняется к началу нового часа. */
+.mk-fcd { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px 4px 5px; border-radius: 99px; background: var(--card2); border: 1px solid var(--border); font-size: 11.5px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.mk-fcd b { color: var(--text); font-weight: 850; }
+.mk-fcd svg { width: 18px; height: 18px; transform: rotate(-90deg); }
+.mk-fcd .t { fill: none; stroke: var(--track); stroke-width: 3; }
+.mk-fcd .p { fill: none; stroke: var(--gold); stroke-width: 3; stroke-linecap: round; stroke-dasharray: 0 100; transition: stroke-dasharray 0.9s linear; }
+.mk-xf-s { display: block; margin-top: 2px; font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mk-xrow { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+.mk-xchips { display: flex; gap: 4px; padding: 3px; border-radius: 12px; background: var(--card2); border: 1px solid var(--border); }
+.mk-xchips button { height: 32px; padding: 0 9px; border: 0; border-radius: 9px; background: none; font: inherit; font-size: 12px; font-weight: 800; color: var(--muted); cursor: pointer; transition: color 0.2s, background-color 0.2s; }
+.mk-xchips button.on { color: var(--text); background: var(--card); box-shadow: 0 0 0 1px var(--border); }
+.mk-xhint { grid-column: 1 / -1; margin: 0; font-size: 11.5px; line-height: 1.4; color: var(--muted); }
+#fut-view .fut-xfer .fx-cell {
+  min-width: 0; padding: 10px 12px; border-radius: 15px;
+  background: var(--card2); border: 1px solid var(--border);
+  transition: border-color 0.35s, box-shadow 0.35s, background-color 0.35s;
+}
+#fut-view .fut-xfer .fx-cell b { margin-top: 4px; font-size: 17px; font-weight: 850; }
+/* Счёт-получатель подсвечен; после перевода плитка «подпрыгивает». */
+#fut-view .fut-xfer .fx-cell.mk-dst {
+  border-color: var(--gold-border);
+  background: linear-gradient(160deg, var(--gold-soft), transparent 70%), var(--card2);
+}
+#fut-view .fut-xfer .fx-cell.mk-pop { animation: mkTilePop calc(var(--k) * 620ms) var(--spring); }
+@keyframes mkTilePop { 35% { transform: scale(1.05); } 70% { transform: scale(0.98); } }
+#fut-view .fut-xfer .fx-swap {
+  display: grid;
+  width: 38px; height: 38px; border: 0;
+  color: var(--primary-text); background: var(--gold-grad);
+  box-shadow: 0 8px 18px -8px rgba(233, 182, 64, 0.9);
+  place-items: center; cursor: pointer;
+  transition: transform 0.14s;
+}
+#fut-view .fut-xfer .fx-swap:active { transform: scale(0.88); }
+#fut-view .fut-xfer .fx-swap svg { width: 18px; height: 18px; transition: transform calc(var(--k) * 550ms) var(--spring); }
+#fut-view .fut-xfer .fx-swap.rev svg { transform: rotate(180deg); }
+#fut-view .fut-xfer .fx-btn {
+  flex: 1; min-width: 0; white-space: nowrap;
+  grid-column: 1 / -1; margin: 0; height: 40px; padding: 0 14px;
+  border-radius: 12px; font-size: 13px; font-weight: 850;
+  position: relative; overflow: hidden;
+}
+#fut-view .fut-xfer .fx-btn::after {
+  content: ""; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  animation: mkShine calc(var(--k) * 3.2s) ease-in-out infinite 1.2s;
+  pointer-events: none;
+}
+@keyframes mkShine { 0%, 70% { left: -60%; } 100% { left: 130%; } }
+
+/* ---------------- Экран монеты (спот и контракт) ---------------- */
+/* :is(#scr-trade, .chart-sheet) = #scr-trade и шторка графика фьючерсов (.chart-sheet). */
+
+#scr-trade #tr-icon.coin.big, .chart-sheet #fc-icon.coin.big {
+  width: 50px; height: 50px;
+  box-shadow: 0 0 0 2.5px var(--bg), 0 0 0 4.5px var(--gold), 0 10px 24px -8px rgba(233, 182, 64, 0.55);
+}
+:is(#scr-trade, .chart-sheet) .th-price { font-size: 27px; font-weight: 850; letter-spacing: -0.02em; }
+:is(#scr-trade, .chart-sheet) .th-change { gap: 6px; margin-top: 5px; }
+:is(#scr-trade, .chart-sheet) .th-dot { display: none; }
+#scr-trade #tr-chg, .chart-sheet #fc-chg {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 8px 2px 6px; border-radius: 99px;
+  font-size: 12.5px; font-weight: 800;
+  color: var(--up); background: var(--up-dim);
+  transition: color 0.4s, background-color 0.4s;
+}
+#scr-trade #tr-chg::before, .chart-sheet #fc-chg::before { content: "\2191"; font-weight: 900; }
+#scr-trade #tr-chg.down, .chart-sheet .down > #fc-chg { color: var(--down); background: var(--down-dim); }
+#scr-trade #tr-chg.down::before, .chart-sheet .down > #fc-chg::before { content: "\2193"; }
+:is(#scr-trade, .chart-sheet) .th-period { font-weight: 800; }
+:is(#scr-trade, .chart-sheet) .th-stat-label { font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+
+:is(#scr-trade, .chart-sheet) .chart-card { padding: 12px; border-radius: 22px; }
+#chart-ohlc, #fc-ohlc { display: flex; gap: 8px; min-width: 0; font-size: 11.5px; font-weight: 700; letter-spacing: 0; color: var(--muted); }
+#chart-ohlc span, #fc-ohlc span { white-space: nowrap; }
+#chart-ohlc b, #fc-ohlc b { color: var(--text); font-weight: 800; }
+#chart-ohlc b.up, #fc-ohlc b.up { color: var(--up); }
+#chart-ohlc b.down, #fc-ohlc b.down { color: var(--down); }
+:is(#scr-trade, .chart-sheet) .chart-type-seg { background: var(--card2); border-radius: 12px; }
+:is(#scr-trade, .chart-sheet) .chart-type-seg button { border-radius: 9px; }
+:is(#scr-trade, .chart-sheet) .chart-type-seg button[aria-pressed="true"] {
+  color: var(--primary-text); background: var(--gold-grad);
+  box-shadow: 0 6px 14px -6px rgba(233, 182, 64, 0.85);
+}
+:is(#scr-trade, .chart-sheet) .tf-row {
+  gap: 2px; margin-top: 10px; padding: 3px;
+  border-radius: 14px; background: var(--card2); border: 1px solid var(--border);
+}
+:is(#scr-trade, .chart-sheet) .tf-btn, :is(#scr-trade, .chart-sheet) .ftf { height: 32px; padding: 0; border: 0; border-radius: 11px; background: transparent; font-size: 12.5px; font-weight: 800; }
+:is(#scr-trade, .chart-sheet) .tf-btn.active, :is(#scr-trade, .chart-sheet) .ftf.active {
+  color: var(--primary-text); background: var(--gold-grad);
+  box-shadow: 0 6px 14px -6px rgba(233, 182, 64, 0.85);
+  animation: v3Pop calc(var(--k) * 360ms) var(--spring);
+}
+
+:is(#scr-trade, .chart-sheet) .trade-actions .btn {
+  position: relative; overflow: hidden;
+  min-height: 64px; padding: 12px 14px;
+  justify-content: center; align-items: center; gap: 2px;
+  font-size: 18px; font-weight: 850; border-radius: 18px;
+}
+#scr-trade #sell-btn, .chart-sheet #fc-short {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 55%), linear-gradient(135deg, #f36a66, var(--down));
+  box-shadow: 0 12px 24px -14px var(--down);
+}
+#scr-trade #buy-btn, .chart-sheet #fc-long {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), transparent 55%), linear-gradient(135deg, #3fd683, var(--up));
+  box-shadow: 0 12px 24px -14px var(--up);
+}
+.mk-bal { font-size: 11.5px; font-weight: 700; opacity: 0.85; letter-spacing: 0; }
+
+#tr-desk.desk, .chart-sheet .fdesk { border-radius: 22px; }
+/* Открытый ордер: полоска приближения цены и кнопка отмены как в концепте. */
+#ao-list .mk-ao-bar { position: relative; height: 4px; margin: 8px 0 6px; border-radius: 99px; background: var(--track); overflow: hidden; }
+#ao-list .mk-ao-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: inherit; background: linear-gradient(90deg, transparent, var(--up)); transition: width 0.8s var(--ease); }
+#ao-list .ao-item--order[data-pnl-sign="down"] .mk-ao-bar i { background: linear-gradient(90deg, transparent, var(--down)); }
+#ao-list .ao-item--order .ao-cancel {
+  width: 34px; height: 34px; border-radius: 11px;
+  background: var(--card); border: 1px solid var(--border);
+  transition: color 0.2s, border-color 0.2s, transform 0.2s var(--spring);
+}
+#ao-list .ao-item--order .ao-cancel:hover { color: var(--down); border-color: var(--down); background: var(--card); }
+#ao-list .ao-item--order .ao-cancel:active { transform: scale(0.85) rotate(90deg); }
+#tr-desk .desk-ink, .chart-sheet .fdesk .desk-ink { background: var(--gold-grad); box-shadow: 0 0 12px rgba(233, 182, 64, 0.6); height: 3px; border-radius: 3px 3px 0 0; }
+
+/* Экран под шторкой монеты отъезжает вглубь (ts-open концепта). */
+#app-main > .topbar, #pages { transform-origin: 50% 0; transition: transform calc(var(--k) * 550ms) cubic-bezier(0.16, 1, 0.3, 1); }
+#app.sheet-on #app-main > .topbar, #app.sheet-on #pages,
+body:has(> #modal-fchart:not(.hidden):not(.modal-out)) #app-main > .topbar,
+body:has(> #modal-fchart:not(.hidden):not(.modal-out)) #pages { transform: scale(0.94) translateY(6px); }
+
+/* Логотип: вращающееся золотое кольцо, при открытии — влёт с поворотом. */
+#scr-trade #tr-icon.coin.big, .chart-sheet #fc-icon.coin.big { position: relative; overflow: visible; background: none; box-shadow: none; animation: none; }
+#scr-trade #tr-icon.coin.big::before, .chart-sheet #fc-icon.coin.big::before {
+  content: ""; position: absolute; inset: -4px; border-radius: 50%;
+  background: conic-gradient(var(--gold), transparent 28%, var(--gold) 50%, transparent 78%, var(--gold));
+  -webkit-mask: radial-gradient(circle, transparent 62%, #000 64%);
+  mask: radial-gradient(circle, transparent 62%, #000 64%);
+  opacity: 0.7;
+  animation: mkSpinRing calc(var(--k) * 7s) linear infinite;
+}
+#scr-trade #tr-icon.coin.big .coin-img, .chart-sheet #fc-icon.coin.big .coin-img { position: relative; border-radius: 50%; background: var(--coin-bg); box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.7); }
+#tr-icon.mk-logo-in .coin-img, #fc-icon.mk-logo-in .coin-img { animation: mkLogoIn calc(var(--k) * 700ms) var(--spring) calc(var(--k) * 120ms) both; }
+@keyframes mkSpinRing { to { transform: rotate(360deg); } }
+@keyframes mkLogoIn { from { transform: scale(0.4) rotate(-40deg); opacity: 0; } }
+
+/* Цена — табло с барабанами; исходный узел остаётся для скринридеров. */
+.mk-odo-src { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+:is(#scr-trade, .chart-sheet) .mk-odo { display: block; padding: 0.06em 0; line-height: 1; transition: color 0.5s; }
+:is(#scr-trade, .chart-sheet) .mk-odo.long { font-size: 21px; }
+:is(#scr-trade, .chart-sheet) .mk-odo .odo-d > span { transition-duration: calc(var(--k) * 420ms); transition-timing-function: cubic-bezier(0.2, 0.85, 0.25, 1); }
+:is(#scr-trade, .chart-sheet) .mk-odo .cents { opacity: 1; }
+:is(#scr-trade, .chart-sheet) .mk-odo.mk-roll .odo-d > span { transition-duration: calc(var(--k) * 950ms); transition-delay: calc(var(--j, 0) * 34ms * var(--k)); }
+:is(#scr-trade, .chart-sheet) .mk-odo.v3-fl-up { animation: mkTotUp calc(var(--k) * 1s) ease-out; }
+:is(#scr-trade, .chart-sheet) .mk-odo.v3-fl-down { animation: mkTotDown calc(var(--k) * 1s) ease-out; }
+@keyframes mkTotUp { 0%, 25% { color: var(--up); text-shadow: 0 0 22px var(--up-dim); } }
+@keyframes mkTotDown { 0%, 25% { color: var(--down); text-shadow: 0 0 22px var(--down-dim); } }
+
+/* Подсказка жестов на графике — один раз за сессию. */
+#scr-trade .chart-card, #fchart .chart-card { position: relative; }
+.mk-ch-hint {
+  position: absolute; left: 50%; bottom: 76px; z-index: 2;
+  padding: 5px 11px; border-radius: 99px;
+  font-size: 11px; font-weight: 700; white-space: nowrap; color: var(--muted);
+  background: var(--card2); border: 1px solid var(--border);
+  pointer-events: none; opacity: 0; transform: translateX(-50%);
+}
+.mk-ch-hint.show { animation: mkHintIn calc(var(--k) * 4s) ease both; animation-delay: calc(var(--k) * 1.2s); }
+@keyframes mkHintIn { 0% { opacity: 0; transform: translate(-50%, 8px); } 10%, 82% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
+
+/* «Live»: золотая таблетка, выпрыгивает при уходе в историю. */
+:is(#scr-trade, .chart-sheet) .live-btn {
+  height: 26px; padding: 0 10px; border-radius: 99px;
+  font-size: 12px; font-weight: 850;
+  color: var(--primary-text); background: var(--gold-grad);
+  box-shadow: 0 6px 14px -6px rgba(233, 182, 64, 0.9);
+}
+:is(#scr-trade, .chart-sheet) .live-btn:not(.hidden) { animation: v3Pop calc(var(--k) * 450ms) var(--spring); }
+
+/* Блик пробегает по «Купить»/«Продать» (у продажи — со сдвигом). */
+:is(#scr-trade, .chart-sheet) .trade-actions .btn::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 36%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: mkShine calc(var(--k) * 4.2s) ease-in-out infinite calc(var(--k) * 1.4s);
+  pointer-events: none;
+}
+#scr-trade #sell-btn::after, .chart-sheet #fc-short::after { animation-delay: calc(var(--k) * 3.4s); }
+
+/* ---------------- Шторка сделки (спот) ---------------- */
+
+#modal-trade:not(.hidden):not(.modal-out) #sheet-ico { animation: mkLogoIn calc(var(--k) * 650ms) var(--spring) calc(var(--k) * 90ms) both; }
+#modal-trade #sheet-ico { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px var(--gold-border); }
+#modal-trade .tr-io-arrow { opacity: 1; }
+#modal-trade .tr-io-arrow svg { animation: mkArr calc(var(--k) * 1.6s) ease-in-out infinite; }
+@keyframes mkArr { 50% { transform: translateX(4px); } }
+#modal-trade .tr-io-big.mk-bump { animation: mkIoBump calc(var(--k) * 400ms) var(--spring); }
+@keyframes mkIoBump { 40% { transform: scale(1.07); } }
+#modal-trade .tr-io-big { transform-origin: 0 60%; }
+#modal-trade .pct-chips button.active { animation: mkChipOn calc(var(--k) * 350ms) var(--spring); }
+@keyframes mkChipOn { 40% { transform: scale(1.08); } }
+/* Детали сделки — строки с разделителями, «Вы получите» плашкой. */
+:is(#modal-trade, #modal-fut, #modal-fpos) .tr-det-row { align-items: center; min-height: 34px; padding: 0; font-size: 13.5px; font-weight: 600; border-top: 1px solid var(--border); }
+:is(#modal-trade, #modal-fut, #modal-fpos) .tr-det-head + .tr-det-row,
+:is(#modal-trade, #modal-fut, #modal-fpos) .tr-det-head + .tr-det-row.hidden + .tr-det-row { border-top: 0; }
+/* Сумма целиком одним кеглем, как $50 в концепте. */
+:is(#modal-trade, #modal-fut) .tr-io-cur { color: inherit; font-size: inherit; font-weight: inherit; }
+:is(#modal-trade, #modal-fut, #modal-fpos) .tr-det-row b { font-weight: 800; }
+#modal-trade .tr-det-row b.tr-det-get { padding: 2px 8px; border-radius: 8px; color: var(--up); background: var(--up-dim); }
+/* Шапка контракта: ставка фандинга цветом знака. */
+.chart-sheet #fc-fund .up { color: var(--up); }
+.chart-sheet #fc-fund .down { color: var(--down); }
+#modal-fut .tr-io-arrow svg { animation: mkArr calc(var(--k) * 1.6s) ease-in-out infinite; }
+#modal-fut .tr-io-arrow { opacity: 1; }
+
+/* ---------------- Шторка сортировки (ssheet концепта) ---------------- */
+
+.mk-ss .sort-col--cats, .mk-ss .sort-summary, .mk-ss #sort-close, .mk-ss .sort-head [data-sclose],
+.mk-ss .sort-col--by > .set-label:first-child { display: none; }
+.mk-ss .sort-head { gap: 12px; margin-bottom: 14px; padding-bottom: 0; border-bottom: 0; }
+.mk-ss .sort-head-ico { width: 44px; height: 44px; border-radius: 14px; box-shadow: 0 8px 18px -8px rgba(233, 182, 64, 0.85); }
+.mk-ss .sort-head-ico svg { width: 22px; height: 22px; }
+.mk-ss .sort-head-txt h2 { margin: 0; font-size: 18px; font-weight: 850; }
+.mk-ss .sort-head-txt p { margin-top: 2px; font-size: 12.5px; }
+.mk-ss .sort-head .mk-ss-reset {
+  display: inline; width: auto; flex: none; margin: 0 0 0 auto; padding: 4px 0 4px 8px;
+  font-size: 13px; font-weight: 800; color: var(--gold); background: none; border-radius: 0;
+}
+.mk-ss .sort-head .mk-ss-reset:hover { color: var(--gold); background: none; opacity: 0.8; }
+.mk-ss #sort-options, .mk-ss #fsort-options { position: relative; display: flex; flex-direction: column; gap: 6px; }
+.mk-ss .mk-sind {
+  position: absolute; z-index: 0; left: 0; right: 0; top: 0; height: 60px; border-radius: 16px;
+  background: linear-gradient(90deg, var(--gold-soft), transparent 92%);
+  pointer-events: none;
+  transition: transform calc(var(--k) * 0.5s) cubic-bezier(0.3, 1.25, 0.5, 1), height calc(var(--k) * 0.5s) cubic-bezier(0.3, 1.25, 0.5, 1), opacity 0.2s;
+}
+.mk-ss .sort-opt {
+  position: relative; z-index: 1; gap: 12px; min-height: 60px; margin: 0; padding: 6px 14px 6px 8px;
+  border-radius: 16px; background: transparent; box-shadow: none;
+  transition: border-color 0.3s, transform 0.14s;
+  animation: mkSsIn calc(var(--k) * 0.5s) var(--ease) both;
+}
+@keyframes mkSsIn { from { opacity: 0; transform: translateY(24px) scale(0.975); } to { opacity: 1; transform: none; } }
+.mk-ss .sort-opt:hover { transform: none; }
+.mk-ss .sort-opt:active { transform: scale(0.98); }
+.mk-ss .sort-opt.sel { background: transparent; border-color: var(--gold-border); box-shadow: none; }
+.mk-ss .sort-opt.flash::after { content: none; }
+.mk-ss .so-ico { width: 44px; height: 44px; }
+.mk-ss .so-ico img, .mk-ss .so-ico svg { width: 44px; height: 44px; filter: none; transition: transform 0.45s var(--spring); }
+.mk-ss .sort-opt.sel .so-ico img, .mk-ss .sort-opt.sel .so-ico svg { filter: none; transform: scale(1.08) rotate(-6deg); }
+.mk-ss .so-txt b { font-size: 15px; font-weight: 850; }
+.mk-ss .so-txt i { font-size: 12px; font-weight: 600; }
+.mk-ss .so-radio { width: 22px; height: 22px; border: 2px solid var(--border); color: var(--primary-text); transition: background-color 0.25s, border-color 0.25s; }
+.mk-ss .so-radio path { stroke-dasharray: 22; stroke-dashoffset: 22; }
+.mk-ss .sort-opt.sel .so-radio { background: var(--gold); border-color: var(--gold); }
+.mk-ss .sort-opt.sel .so-radio path { animation: mkCkDraw calc(var(--k) * 0.3s) ease-out calc(var(--k) * 80ms) forwards; }
+@keyframes mkCkDraw { to { stroke-dashoffset: 0; } }
+.mk-ss .sort-foot { margin-top: 16px; padding-top: 0; border-top: 0; }
+@media (min-width: 520px) {
+  .modal.mk-ss .sheet.sort-sheet { max-width: 460px; }
+  .mk-ss .sort-cols { grid-template-columns: minmax(0, 1fr); gap: 0; }
+}
+
+@media (max-width: 360px) {
+  #market-list .asset-row, #fut-list .fut-row { grid-template-columns: 36px minmax(0, 1fr) minmax(70px, auto) 24px; }
+  #fut-list .fut-row { grid-template-columns: 36px minmax(0, 1fr) minmax(70px, auto) 24px; }
+  #market-list .spark, #fut-list .spark { display: none; }
+  #market-list .asset-row .coin, #fut-list .fut-row .coin { width: 36px; height: 36px; }
+  .mkp-cap { font-size: 26px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #mkp-ring, .mk-chip.in, #market-list > .mk-in, .mk-ph span.in, .mk-ph span.out,
+  #fut-view .fut-xfer .fx-btn::after, #market-list .asset-row.mk-rise::before,
+  #market-list .asset-row.mk-fall::before, #market-list > .mk-in .spark, #market-list .tag-hot .mk-fl,
+  #market-list .mk-em-ico svg, #market-list .mk-em-ico i, #market-list .empty-search > *,
+  #scr-trade #tr-icon.coin.big::before, .chart-sheet #fc-icon.coin.big::before, #tr-icon.mk-logo-in .coin-img, #fc-icon.mk-logo-in .coin-img,
+  .mk-ch-hint.show, :is(#scr-trade, .chart-sheet) .live-btn:not(.hidden), :is(#scr-trade, .chart-sheet) .trade-actions .btn::after,
+  #modal-trade:not(.hidden):not(.modal-out) #sheet-ico, #modal-trade .tr-io-arrow svg, #modal-fut .tr-io-arrow svg, #fut-view .fut-xfer .fx-cell.mk-pop, #modal-trade .tr-io-big.mk-bump,
+  #modal-trade .pct-chips button.active, :is(#scr-trade, .chart-sheet) .mk-odo.v3-fl-up, :is(#scr-trade, .chart-sheet) .mk-odo.v3-fl-down { animation: none; }
+  #fut-list > .mk-in, #fut-list > .mk-in .spark, #fut-list .fut-row.mk-rise::before, #fut-list .fut-row.mk-fall::before,
+  .mk-ptr.spin .mk-ptr-coin, .mk-ss .sort-opt, .mk-ss .sort-opt.sel .so-radio path { animation: none; }
+  .mk-ss .sort-opt.sel .so-radio path { stroke-dashoffset: 0; }
+  .mk-ss .mk-sind, .mk-ss .so-ico img, .mk-ss .so-ico svg { transition: none; }
+  #app-main > .topbar, #pages, #tab-market { transition: none; }
+}
+
+/* Фьючерсы: звезда в строке и чипы «до N×» (как в концепте). */
+#fut-list .fut-row .star-btn { flex: none; }
+#fut-list .fut-row.fav .star-btn { background: none; }
+.mk-lvb { display: inline-grid; place-items: center; flex: none; width: 24px; height: 24px; border-radius: 50%; color: var(--gold); background: var(--gold-soft); transition: color 0.3s, background-color 0.3s; }
+.mk-lvb svg { width: 14px; height: 14px; fill: currentColor; }
+.mk-chip.on .mk-lvb { color: var(--primary-text); background: rgba(34, 23, 3, 0.14); }
+#fut-list .market-all-h .fav-h-count { background: var(--card2); border-color: var(--border); color: var(--muted); }
+#fut-list .fut-empty--search .fut-sugs { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; margin: 4px 0 6px; font-size: 12px; font-weight: 700; color: var(--muted); }

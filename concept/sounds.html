@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="data:,">
+<title>TradeUp — концепт звука и музыки</title>
+<style>
+:root{--bg:#0a0c0f;--card:#14171c;--card2:#1a1e24;--line:#262b33;--tx:#eef0f3;--mut:#8b93a0;--gold:#e9b640;--gold2:#f7d879;--up:#2fbe6e;--down:#f0524f;--violet:#a78bfa;--blue:#38bdf8}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+body{padding-bottom:40px;background:radial-gradient(1200px 500px at 50% -200px,rgba(233,182,64,.12),transparent 70%),var(--bg)}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+.wrap{max-width:1080px;margin:0 auto;padding:0 14px}
+header.hero{padding:26px 0 8px;text-align:center}
+.logo{font-weight:800;letter-spacing:.32em;font-size:13px;color:var(--gold)}
+.logo b{color:var(--tx)}
+h1{margin:6px 0 6px;font-size:26px;line-height:1.15}
+.sub{color:var(--mut);max-width:640px;margin:0 auto}
+.bar{position:sticky;top:0;z-index:20;margin:14px -14px 0;padding:10px 14px;background:rgba(10,12,15,.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.bar-in{max-width:1080px;margin:0 auto;display:grid;gap:10px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:3px}
+.seg button{padding:7px 11px;border-radius:9px;color:var(--mut);font-weight:600;font-size:13px;white-space:nowrap}
+.seg button.on{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1405}
+.ctl{display:flex;align-items:center;gap:7px;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:5px 10px;font-size:13px;color:var(--mut)}
+.ctl input[type=range]{width:86px;accent-color:var(--gold)}
+.sw{width:34px;height:20px;border-radius:20px;background:#333a44;position:relative;transition:.2s}
+.sw:after{content:"";position:absolute;left:3px;top:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:.2s}
+.sw.on{background:var(--gold)}.sw.on:after{left:17px}
+.btn{padding:8px 12px;border-radius:11px;background:var(--card2);border:1px solid var(--line);font-weight:600;font-size:13px}
+.btn.gold{background:linear-gradient(180deg,var(--gold2),var(--gold));color:#1a1405;border:0}
+.btn:active{transform:scale(.97)}
+canvas#viz{width:100%;height:38px;display:block;border-radius:10px;background:var(--card);border:1px solid var(--line)}
+.tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:0 0 auto;display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 12px;border-radius:12px;background:var(--card);border:1px solid var(--line);font-size:12px;color:var(--mut);min-width:74px}
+.tabs button i{font-style:normal;font-size:18px}
+.tabs button.on{border-color:var(--gold);color:var(--gold2);box-shadow:0 0 0 1px var(--gold) inset}
+.tabs button .eq{height:8px;display:flex;gap:2px;align-items:flex-end;opacity:0}
+.tabs button.on .eq{opacity:1}
+.eq s{display:block;width:3px;background:var(--gold);animation:eq .9s infinite ease-in-out;height:3px}
+.eq s:nth-child(2){animation-delay:-.3s}.eq s:nth-child(3){animation-delay:-.6s}
+@keyframes eq{50%{height:8px}}
+section{margin-top:26px}
+h2{font-size:19px;margin:0 0 4px;display:flex;align-items:center;gap:8px}
+h2 small{font-size:12px;color:var(--mut);font-weight:500}
+.lead{color:var(--mut);margin:0 0 12px;font-size:13px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.card{background:linear-gradient(180deg,var(--card2),var(--card));border:1px solid var(--line);border-radius:16px;padding:12px;position:relative;transition:border-color .2s}
+.card.flash{border-color:var(--gold);box-shadow:0 0 18px rgba(233,182,64,.25)}
+.card h3{margin:0;font-size:14px}
+.card .when{color:var(--mut);font-size:12px;margin:3px 0 9px;min-height:34px}
+.card code{font-size:11px;color:var(--gold);background:rgba(233,182,64,.08);padding:1px 6px;border-radius:6px}
+.vars{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.vars button{padding:8px 4px;border-radius:10px;background:#0f1216;border:1px solid var(--line);font-size:12px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:1px;position:relative}
+.vars button em{font-style:normal;font-size:10px;color:var(--mut);font-weight:500}
+.vars button.sel{border-color:var(--gold);background:rgba(233,182,64,.1)}
+.vars button.sel:after{content:"★";position:absolute;top:2px;right:5px;font-size:9px;color:var(--gold)}
+.vars button.play{animation:pp .35s}
+@keyframes pp{40%{transform:scale(.94)}}
+.dl{position:absolute;top:10px;right:10px;font-size:12px;color:var(--mut);padding:2px 6px;border-radius:7px}
+.dl:hover{color:var(--gold);background:rgba(233,182,64,.08)}
+.p0{color:#f7d879}.p1{color:#9fe3c0}.p2{color:#c4a8ff}
+.mus .vars{grid-template-columns:1fr}
+.mus .vars button{flex-direction:row;justify-content:space-between;padding:9px 10px;text-align:left}
+.mus .vars button.playing{border-color:var(--gold);background:rgba(233,182,64,.12)}
+.mus .vars button.playing:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold);margin-right:6px;flex:0 0 auto}
+.mus .meta{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 9px}
+.tag{font-size:11px;padding:2px 7px;border-radius:999px;background:#0f1216;border:1px solid var(--line);color:var(--mut)}
+.scn{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
+.scn button{text-align:left;padding:12px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+.scn button b{display:block;margin-bottom:2px}
+.scn button span{color:var(--mut);font-size:12px}
+.scn button.run{border-color:var(--gold)}
+.note{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 16px;color:#cfd4dc;font-size:13px}
+.note h3{margin:0 0 6px;font-size:14px;color:var(--gold2)}
+.note ul{margin:6px 0 0;padding-left:18px}.note li{margin:3px 0}
+pre{background:#0d1014;border:1px solid var(--line);border-radius:12px;padding:12px;overflow:auto;font-size:12px;color:#d6dae0}
+.two{display:grid;grid-template-columns:1fr;gap:10px}
+@media(min-width:820px){.two{grid-template-columns:1fr 1fr}}
+#ad{position:fixed;inset:0;z-index:50;background:rgba(0,0,0,.86);display:none;align-items:center;justify-content:center;flex-direction:column;gap:8px;font-size:18px}
+#ad.on{display:flex}#ad small{color:var(--mut);font-size:13px;text-align:center;padding:0 24px}
+#tip{position:fixed;left:50%;bottom:18px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--card2);border:1px solid var(--gold);padding:9px 14px;border-radius:12px;font-size:13px;transition:.25s;z-index:60;pointer-events:none}
+#tip.on{opacity:1;transform:translateX(-50%)}
+#start{position:fixed;inset:0;z-index:70;background:rgba(10,12,15,.92);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;text-align:center;padding:20px}
+#start.off{display:none}
+#start .big{font-size:42px}
+@media(max-width:700px){.bar{padding:8px 10px}.bar-in{gap:7px}.bar .row{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}.bar .row::-webkit-scrollbar{display:none}.bar .row>*{flex:0 0 auto}.tabs button{min-width:64px;padding:5px 9px;font-size:11px}.tabs button i{font-size:16px}canvas#viz{height:24px}.ctl input[type=range]{width:70px}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="start"><div class="big">🔊</div><b style="font-size:18px">Концепт звука TradeUp</b><div class="sub">Браузер разрешает звук только после касания — как и в самой игре на Яндексе.</div><button class="btn gold" id="go" style="padding:12px 22px;font-size:15px">Включить звук</button></div>
+<div id="ad"><div>📺 Реклама…</div><small>game_api_pause → весь звук приглушён и AudioContext на паузе</small></div>
+<div id="tip"></div>
+<div class="wrap">
+<header class="hero">
+  <div class="logo">TRADE<b>UP</b> · SOUND</div>
+  <h1>Звук и музыка: концепт</h1>
+  <p class="sub">Всё синтезируется на Web Audio прямо в браузере — 0 КБ ассетов и никаких лицензий. Звуки — шумовой саунд-дизайн без мелодий (клики, удары, монеты, шелест) в трёх материалах: металл, бумага и дерево, цифровой. Музыка — одна общая фоновая тема на всю игру в 5 аранжировках, не зависит от вкладки. ★ отмечает выбранный вариант, ⬇ скачивает WAV.</p>
+</header>
+<div class="bar"><div class="bar-in">
+  <div class="tabs" id="tabs"></div>
+  <div class="row">
+    <div class="seg" id="pack"></div>
+    <div class="ctl"><button class="sw on" id="sw-mus"></button>Музыка<input type="range" id="v-mus" min="0" max="100" value="45"></div>
+    <div class="ctl"><button class="sw on" id="sw-sfx"></button>Звуки<input type="range" id="v-sfx" min="0" max="100" value="85"></div>
+    <div class="ctl" title="Насколько «нервный» рынок: добавляет слои в музыку">Напряжение<input type="range" id="v-int" min="0" max="100" value="50"></div>
+    <button class="btn" id="b-stop">■ Стоп музыка</button>
+    <button class="btn" id="b-ad">📺 Имитация рекламы</button>
+  </div>
+  <canvas id="viz" width="1080" height="76"></canvas>
+</div></div>
+<div id="content"></div>
+<script>
+'use strict';
+/* ===================== Движок синтеза ===================== */
+var m = function (n) { return 440 * Math.pow(2, (n - 69) / 12); };
+var hr = function (a, b) { var x = Math.sin(a * 12.9898 + b * 78.233 + 0.5) * 43758.5453; return x - Math.floor(x); };
+var NB = new WeakMap(), IR = new WeakMap();
+function noiseBuf(c) {
+  var b = NB.get(c); if (b) return b;
+  b = c.createBuffer(1, c.sampleRate * 2, c.sampleRate);
+  var d = b.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  NB.set(c, b); return b;
+}
+function impulse(c, dur, dec) {
+  var len = Math.floor(c.sampleRate * dur), b = c.createBuffer(2, len, c.sampleRate);
+  for (var ch = 0; ch < 2; ch++) { var d = b.getChannelData(ch); for (var i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, dec); }
+  return b;
+}
+function env(g, t, a, s, d, pk) {
+  a = Math.max(0.002, a); s = Math.max(0, Math.min(s || 0, d - a - 0.01));
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0002, pk), t + a);
+  if (s > 0) g.gain.setValueAtTime(Math.max(0.0002, pk), t + a + s);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(d, a + 0.01));
+}
+function route(b, g, o) {
+  g.connect(b.in);
+  if (o.rv) { var s = b.c.createGain(); s.gain.value = o.rv; g.connect(s); s.connect(b.rev); }
+  if (o.dl) { var s2 = b.c.createGain(); s2.gain.value = o.dl; g.connect(s2); s2.connect(b.dly); }
+}
+function filt(c, src, t, o) {
+  if (!o.fc) return src;
+  var f = c.createBiquadFilter(); f.type = o.ft || 'lowpass'; f.Q.value = o.q || 0.7;
+  f.frequency.setValueAtTime(o.fc, t);
+  if (o.fc2) f.frequency.exponentialRampToValueAtTime(o.fc2, t + (o.d || 0.2));
+  src.connect(f); return f;
+}
+/* Тон: f→f2, тип волны, огибающая, фильтр, вибрато, посылы. */
+function T(b, t, o) {
+  var c = b.c, d = o.d || 0.2, osc = c.createOscillator();
+  osc.type = o.type || 'sine';
+  osc.frequency.setValueAtTime(o.f, t);
+  if (o.f2) osc.frequency.exponentialRampToValueAtTime(Math.max(1, o.f2), t + (o.pt || d));
+  if (o.det) osc.detune.value = o.det;
+  if (o.vib) { var l = c.createOscillator(), lg = c.createGain(); l.frequency.value = o.vib; lg.gain.value = o.f * 0.008; l.connect(lg); lg.connect(osc.frequency); l.start(t); l.stop(t + d + 0.05); }
+  var g = c.createGain(); env(g, t, o.a || 0.004, o.s, d, o.g == null ? 0.3 : o.g);
+  filt(c, osc, t, o).connect(g); route(b, g, o);
+  osc.start(t); osc.stop(t + d + 0.05);
+}
+function N(b, t, o) {
+  var c = b.c, d = o.d || 0.1, src = c.createBufferSource();
+  src.buffer = noiseBuf(c); src.loop = true;
+  var g = c.createGain(); env(g, t, o.a || 0.002, o.s, d, o.g == null ? 0.2 : o.g);
+  filt(c, src, t, o).connect(g); route(b, g, o);
+  src.start(t, Math.random()); src.stop(t + d + 0.05);
+}
+/* FM-колокол: несущая + модулятор с затухающим индексом. */
+function FM(b, t, o) {
+  var c = b.c, d = o.d || 1, car = c.createOscillator(), mod = c.createOscillator(), mg = c.createGain();
+  car.frequency.value = o.f; mod.frequency.value = o.f * (o.r || 3.5);
+  mg.gain.setValueAtTime(o.f * (o.ix || 2), t); mg.gain.exponentialRampToValueAtTime(o.f * (o.ix || 2) * 0.04 + 0.01, t + d);
+  mod.connect(mg); mg.connect(car.frequency);
+  var g = c.createGain(); env(g, t, o.a || 0.002, 0, d, o.g == null ? 0.2 : o.g);
+  car.connect(g); route(b, g, o);
+  car.start(t); mod.start(t); car.stop(t + d + 0.05); mod.stop(t + d + 0.05);
+}
+/* Граф: мастер с компрессором, две шины (звуки/музыка) с реверберацией и дилеем. */
+function makeGraph(c, dest) {
+  var G = { c: c };
+  G.master = c.createGain(); G.master.gain.value = 0.9;
+  var comp = c.createDynamicsCompressor();
+  comp.threshold.value = -12; comp.knee.value = 8; comp.ratio.value = 5; comp.attack.value = 0.002; comp.release.value = 0.18;
+  G.master.connect(comp); comp.connect(dest); G.comp = comp;
+  function bus(vol, dlt) {
+    var post = c.createGain(); post.connect(G.master);
+    var out = c.createGain(); out.gain.value = vol; out.connect(post);
+    var inp = c.createGain(); inp.connect(out);
+    var rev = c.createConvolver(); rev.buffer = impulse(c, 2.4, 3); rev.connect(out);
+    var dly = c.createDelay(1.5); dly.delayTime.value = dlt;
+    var fb = c.createGain(); fb.gain.value = 0.32; var lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2800;
+    dly.connect(lp); lp.connect(fb); fb.connect(dly); var dg = c.createGain(); dg.gain.value = 0.5; lp.connect(dg); dg.connect(out);
+    return { c: c, in: inp, out: out, post: post, rev: rev, dly: dly };
+  }
+  G.sfx = bus(0.85, 0.16); G.music = bus(0.45, 0.3);
+  return G;
+}
+/* ===================== Материалы (три стиля звука) =====================
+   Никаких нот и аккордов: клики, удары, металл, бумага, шум. */
+/* Металл: негармонические обертона — звенит, но не «играет мелодию». */
+function METAL(b, t, f, g, d, rv) { [1, 2.76, 5.4, 8.93].forEach(function (r, i) { T(b, t, { f: f * r, d: d * (1 - i * 0.18), g: g * [1, 0.6, 0.4, 0.25][i], rv: rv || 0.15 }); }); }
+function WOOD(b, t, f, g, d) { T(b, t, { f: f, f2: f * 0.6, pt: 0.02, d: d || 0.05, g: g }); N(b, t, { d: 0.012, g: g * 0.6, ft: 'bandpass', fc: f * 2.2, q: 3 }); }
+function scatter(n, d, seed, fn) { for (var i = 0; i < n; i++) fn(hr(i, seed) * d, i, hr(i, seed + 7)); }
+var PACKS = [
+  { id: 'metal', name: 'Металл', hint: 'монеты, сталь, щелчки затвора',
+    click: function (b, t, g, f) { N(b, t, { d: 0.012, g: g * 0.9, ft: 'highpass', fc: 4500 }); METAL(b, t, f || 3200, g * 0.2, 0.05); },
+    knock: function (b, t, g, f) { METAL(b, t, f || 1400, g * 0.45, 0.12); N(b, t, { d: 0.01, g: g * 0.5, ft: 'bandpass', fc: 3000 }); },
+    coin: function (b, t, g, k) { k = k || 1; METAL(b, t, 2400 * k, g, 0.35, 0.25); N(b, t, { d: 0.008, g: g * 0.5, ft: 'highpass', fc: 6000 }); },
+    sparkle: function (b, t, d, g) { scatter(Math.round(8 + d * 10), d, 3, function (o, i, r) { METAL(b, t + o, 4200 + r * 4500, g * (0.4 + r * 0.6) * 0.5, 0.08, 0.3); }); },
+    thud: function (b, t, f, g, d) { T(b, t, { f: f, f2: f * 0.4, pt: d * 0.6, d: d, g: g }); N(b, t, { d: 0.05, g: g * 0.35, ft: 'lowpass', fc: 700 }); },
+    buzz: function (b, t, d, g) { T(b, t, { f: 92, d: d, g: g, type: 'sawtooth', fc: 1500, s: d * 0.7 }); T(b, t, { f: 97, d: d, g: g * 0.8, type: 'sawtooth', fc: 1500, s: d * 0.7 }); },
+    pop: function (b, t, g, f) { METAL(b, t, f || 5200, g * 0.4, 0.07); },
+    rustle: function (b, t, d, g) { scatter(Math.round(6 + d * 30), d, 11, function (o, i, r) { METAL(b, t + o, 2500 + r * 3500, g * 0.18, 0.04); }); },
+    crack: function (b, t, g) { METAL(b, t, 320, g, 1.2, 0.4); N(b, t, { d: 0.35, g: g, ft: 'highpass', fc: 2000, rv: 0.3 }); },
+    swoosh: function (b, t, up, d, g) { N(b, t, { d: d, a: d * 0.45, g: g, ft: 'bandpass', fc: up ? 500 : 3500, fc2: up ? 3500 : 500, q: 1.4, rv: 0.2 }); }
+  },
+  { id: 'paper', name: 'Бумага и дерево', hint: 'купюры, деревянные кнопки, войлок',
+    click: function (b, t, g, f) { WOOD(b, t, (f || 3200) * 0.34, g * 0.9, 0.04); },
+    knock: function (b, t, g, f) { WOOD(b, t, (f || 1400) * 0.3, g, 0.08); },
+    coin: function (b, t, g, k) { k = k || 1; WOOD(b, t, 1500 * k, g * 0.8, 0.04); WOOD(b, t + 0.04, 1300 * k, g * 0.6, 0.05); },
+    sparkle: function (b, t, d, g) { scatter(Math.round(10 + d * 14), d, 5, function (o, i, r) { N(b, t + o, { d: 0.02 + r * 0.03, g: g * 0.5, ft: 'bandpass', fc: 2500 + r * 4000, q: 1.5 }); }); },
+    thud: function (b, t, f, g, d) { T(b, t, { f: f * 0.8, f2: f * 0.45, pt: d * 0.5, d: d * 1.1, g: g, fc: 500 }); N(b, t, { d: 0.08, g: g * 0.3, ft: 'lowpass', fc: 300 }); },
+    buzz: function (b, t, d, g) { T(b, t, { f: 140, d: d, g: g * 1.2, type: 'triangle', s: d * 0.6, vib: 26 }); N(b, t, { d: d, g: g * 0.25, ft: 'lowpass', fc: 600, s: d * 0.6 }); },
+    pop: function (b, t, g, f) { T(b, t, { f: (f || 5200) * 0.09, f2: (f || 5200) * 0.26, pt: 0.04, d: 0.05, g: g }); },
+    rustle: function (b, t, d, g) { scatter(Math.round(8 + d * 40), d, 13, function (o, i, r) { N(b, t + o, { d: 0.015 + r * 0.04, g: g * (0.4 + r * 0.6), ft: 'bandpass', fc: 1800 + r * 4500, q: 1.2 }); }); },
+    crack: function (b, t, g) { N(b, t, { d: 0.25, g: g, ft: 'lowpass', fc: 2500, fc2: 300, rv: 0.25 }); [0, 0.03, 0.07].forEach(function (o, i) { WOOD(b, t + o, 260 - i * 40, g * 0.7, 0.1); }); },
+    swoosh: function (b, t, up, d, g) { N(b, t, { d: d, a: d * 0.5, g: g * 1.2, ft: 'lowpass', fc: up ? 250 : 1800, fc2: up ? 1800 : 250, q: 0.8 }); }
+  },
+  { id: 'digital', name: 'Цифровой', hint: 'чистый UI, глитч, саб-удары',
+    click: function (b, t, g, f) { T(b, t, { f: (f || 3200) * 0.7, d: 0.008, g: g * 0.35, type: 'square', fc: 6000 }); T(b, t, { f: (f || 3200) * 0.35, d: 0.02, g: g * 0.5 }); },
+    knock: function (b, t, g, f) { T(b, t, { f: f || 1300, f2: (f || 1300) * 0.4, pt: 0.02, d: 0.035, g: g }); },
+    coin: function (b, t, g, k) { k = k || 1; T(b, t, { f: 700 * k, f2: 2600 * k, pt: 0.06, d: 0.09, g: g * 0.7 }); T(b, t, { f: 1400 * k, f2: 5200 * k, pt: 0.06, d: 0.07, g: g * 0.15, type: 'square', fc: 7000 }); },
+    sparkle: function (b, t, d, g) { scatter(Math.round(8 + d * 16), d, 9, function (o, i, r) { T(b, t + o, { f: 2000 + r * 6000, d: 0.01 + r * 0.015, g: g * 0.22, type: 'square', fc: 9000, dl: 0.1 }); }); },
+    thud: function (b, t, f, g, d) { T(b, t, { f: f * 0.7, f2: 28, pt: d * 0.8, d: d * 1.2, g: g * 1.1 }); T(b, t, { f: 1800, d: 0.006, g: g * 0.2, type: 'square' }); },
+    buzz: function (b, t, d, g) { T(b, t, { f: 82, d: d, g: g * 0.5, type: 'square', fc: 1800, det: -12, s: d * 0.7 }); T(b, t, { f: 82, d: d, g: g * 0.5, type: 'square', fc: 1800, det: 12, s: d * 0.7 }); },
+    pop: function (b, t, g, f) { T(b, t, { f: (f || 5200) * 0.06, f2: (f || 5200) * 0.18, pt: 0.03, d: 0.05, g: g }); },
+    rustle: function (b, t, d, g) { scatter(Math.round(6 + d * 30), d, 17, function (o, i, r) { T(b, t + o, { f: 3000 + r * 5000, d: 0.006, g: g * 0.3, type: 'square', fc: 8000 }); }); },
+    crack: function (b, t, g) { N(b, t, { d: 0.3, g: g, ft: 'highpass', fc: 1200, rv: 0.2 }); scatter(14, 0.35, 21, function (o, i, r) { T(b, t + o, { f: 200 + r * 3000, d: 0.02, g: g * 0.25, type: 'square', fc: 5000 }); }); },
+    swoosh: function (b, t, up, d, g) { T(b, t, { f: up ? 90 : 900, f2: up ? 900 : 90, pt: d, d: d, g: g * 0.6, type: 'sawtooth', fc: up ? 400 : 4000, fc2: up ? 4000 : 400, q: 6, a: d * 0.3 }); }
+  }
+];
+/* ===================== Звуки по вкладкам ===================== */
+var GROUPS = [
+  { id: 'global', icon: '⚙️', name: 'Интерфейс', lead: 'Базовые звуки, которые слышны на любой вкладке. Тихие и короткие — их будут слышать сотни раз.' },
+  { id: 'lobby', icon: '🏠', name: 'Меню', lead: 'Ежедневный бонус, задания, сундуки. Здесь можно «щедрее» — это награды.' },
+  { id: 'market', icon: '📈', name: 'Рынок', lead: 'Тики цены почти неслышны: рынок живой, но не должен утомлять.' },
+  { id: 'trade', icon: '💱', name: 'Сделка', lead: 'Главный момент игры: покупка и продажа должны ощущаться весомо.' },
+  { id: 'futures', icon: '⚡', name: 'Фьючерсы', lead: 'Плечо, лонг/шорт, ликвидация — более нервная палитра.' },
+  { id: 'portfolio', icon: '💼', name: 'Портфель', lead: 'Аналитика: счётчики, периоды графика, переводы.' },
+  { id: 'rating', icon: '🏆', name: 'Рейтинг', lead: 'Рост и падение места, пьедестал.' },
+  { id: 'profile', icon: '👤', name: 'Профиль и достижения', lead: 'Достижения, новый класс трейдера, примерочная.' },
+  { id: 'wheel', icon: '🎡', name: 'Колесо', lead: 'Раскрутка, щелчки по секторам с замедлением, выигрыш.' },
+  { id: 'alerts', icon: '🔔', name: 'Уведомления', lead: 'Алерты цены и новостей — должны быть слышны даже на фоне музыки.' }
+];
+var SFX = [];
+function S(id, g, name, when, dur, fn) { SFX.push({ id: id, g: g, name: name, when: when, dur: dur, fn: fn }); }
+function each(arr, fn) { for (var i = 0; i < arr.length; i++) fn(arr[i], i); }
+/* Россыпь монет: неровные интервалы, чуть разная «величина» монеты. */
+function coins(P, b, t, n, d, g, seed) { scatter(n, d, seed || 1, function (o, i, r) { P.coin(b, t + o, g * (0.55 + r * 0.45), 0.85 + r * 0.35); }); }
+/* Сдувание: шум с опускающимся фильтром (без тона). */
+function deflate(b, t, d, g) { N(b, t, { d: d, a: 0.02, g: g, ft: 'bandpass', fc: 2400, fc2: 180, q: 2.5 }); }
+/* Толпа/шум зала: полосовой шум с медленной атакой. */
+function crowd(b, t, d, g) { N(b, t, { d: d, a: d * 0.3, g: g, ft: 'bandpass', fc: 900, fc2: 1400, q: 0.9, rv: 0.4 }); N(b, t, { d: d * 0.8, a: d * 0.25, g: g * 0.6, ft: 'bandpass', fc: 2600, q: 1.5, rv: 0.4 }); }
+
+/* Интерфейс */
+S('tap', 'global', 'Тап по кнопке', 'Любая кнопка, чип, пункт списка', 0.4, function (P, b, t) { P.click(b, t, 0.22); });
+S('tab', 'global', 'Смена вкладки', 'Нижняя панель: Меню → Рынок → …', 0.5, function (P, b, t) { P.click(b, t, 0.16, 2600); P.swoosh(b, t + 0.01, true, 0.12, 0.05); P.click(b, t + 0.05, 0.12, 3800); });
+S('sheet_open', 'global', 'Шторка открылась', 'Шит покупки, сортировка, настройки', 0.6, function (P, b, t) { P.swoosh(b, t, true, 0.2, 0.12); P.knock(b, t + 0.17, 0.12, 1600); });
+S('sheet_close', 'global', 'Шторка закрылась', 'Смахивание вниз, тап по затемнению', 0.6, function (P, b, t) { P.swoosh(b, t, false, 0.17, 0.11); P.thud(b, t + 0.13, 160, 0.14, 0.1); });
+S('toggle', 'global', 'Переключатель', 'Тумблеры и сегменты (тема, язык)', 0.4, function (P, b, t) { P.click(b, t, 0.2, 2400); P.knock(b, t + 0.035, 0.12, 1800); });
+S('error', 'global', 'Ошибка / нельзя', 'FX.nudge: не хватает денег, неверное имя', 0.6, function (P, b, t) { P.buzz(b, t, 0.1, 0.13); P.buzz(b, t + 0.14, 0.14, 0.11); });
+S('toast', 'global', 'Тост', 'Обычное уведомление сверху', 0.6, function (P, b, t) { P.swoosh(b, t, false, 0.12, 0.06); P.pop(b, t + 0.09, 0.16); });
+S('popup', 'global', 'Окно поверх', 'Модалка (выбор аватарки, подтверждение)', 0.6, function (P, b, t) { P.swoosh(b, t, true, 0.16, 0.09); P.pop(b, t + 0.13, 0.14, 4200); P.click(b, t + 0.15, 0.08); });
+
+/* Меню */
+S('bonus', 'lobby', 'Ежедневный бонус', '«Забрать бонус» — монеты сыплются в капитал', 2, function (P, b, t) { P.swoosh(b, t, true, 0.25, 0.08); coins(P, b, t + 0.2, 14, 0.9, 0.12, 3); P.thud(b, t + 1.15, 110, 0.2, 0.25); P.sparkle(b, t + 1.15, 0.5, 0.12); });
+S('coin_hit', 'lobby', 'Монета долетела', 'FX.fly: монета попала в счётчик', 0.5, function (P, b, t) { P.coin(b, t, 0.16); P.click(b, t + 0.01, 0.08); });
+S('streak', 'lobby', 'Серия дней', 'Огонёк серии вырос', 1.1, function (P, b, t) { N(b, t, { d: 0.6, a: 0.25, g: 0.12, ft: 'bandpass', fc: 400, fc2: 2600, q: 1.2 }); P.rustle(b, t + 0.1, 0.5, 0.08); P.pop(b, t + 0.6, 0.18); });
+S('quest_done', 'lobby', 'Задание выполнено', 'Галочка в «Заданиях дня»', 1, function (P, b, t) { P.knock(b, t, 0.16, 1500); P.swoosh(b, t + 0.02, true, 0.12, 0.06); P.click(b, t + 0.12, 0.18, 3600); P.sparkle(b, t + 0.15, 0.3, 0.08); });
+S('chest', 'lobby', 'Сундук открыт', 'Награда за этап пропуска', 2, function (P, b, t) { P.knock(b, t, 0.2, 900); P.knock(b, t + 0.09, 0.16, 800); P.thud(b, t + 0.3, 90, 0.28, 0.3); P.swoosh(b, t + 0.3, true, 0.35, 0.1); coins(P, b, t + 0.45, 9, 0.6, 0.1, 5); P.sparkle(b, t + 0.5, 0.8, 0.1); });
+S('xp', 'lobby', 'Опыт +XP', 'Полоска пропуска заполнилась', 0.6, function (P, b, t) { P.rustle(b, t, 0.25, 0.07); P.pop(b, t + 0.25, 0.12, 6000); });
+
+/* Рынок */
+S('tick_up', 'market', 'Тик цены вверх', 'Цена в строке мигнула зелёным (очень тихо)', 0.3, function (P, b, t) { P.click(b, t, 0.06, 4200); });
+S('tick_down', 'market', 'Тик цены вниз', 'Цена мигнула красным', 0.3, function (P, b, t) { P.click(b, t, 0.06, 2200); });
+S('open_coin', 'market', 'Открыть монету', 'Тап по строке — шторка графика', 0.6, function (P, b, t) { P.click(b, t, 0.14); P.swoosh(b, t + 0.02, true, 0.2, 0.1); P.knock(b, t + 0.2, 0.1, 1700); });
+S('fav_add', 'market', 'В избранное', 'Звёздочка включена', 0.6, function (P, b, t) { P.pop(b, t, 0.16, 5600); P.sparkle(b, t + 0.03, 0.22, 0.08); });
+S('fav_remove', 'market', 'Из избранного', 'Звёздочка выключена', 0.4, function (P, b, t) { P.pop(b, t, 0.12, 3600); P.swoosh(b, t + 0.02, false, 0.1, 0.04); });
+S('sort', 'market', 'Сортировка / фильтр', 'Смена сортировки и чипов категорий', 0.4, function (P, b, t) { P.rustle(b, t, 0.1, 0.1); P.click(b, t + 0.1, 0.14); });
+S('news_strong', 'market', 'Сильная новость', '«Сильное событие» в ленте', 1.5, function (P, b, t) { P.rustle(b, t, 0.35, 0.12); P.thud(b, t + 0.35, 120, 0.22, 0.3); P.knock(b, t + 0.35, 0.16, 1100); P.knock(b, t + 0.5, 0.12, 1100); });
+
+/* Сделка */
+S('chip', 'trade', 'Чип / шаг ползунка', '10% · 25% · 50%, ползунок суммы', 0.3, function (P, b, t) { P.click(b, t, 0.16, 3000); });
+S('slider', 'trade', 'Ползунок суммы (демо)', 'Щелчки при протягивании — плотнее и ярче с суммой', 0.9, function (P, b, t) { for (var i = 0; i < 12; i++) P.click(b, t + i * 0.06, 0.06 + i * 0.008, 2000 + i * 220); });
+S('buy', 'trade', 'Покупка', 'doBuy: монеты летят в портфель', 1.2, function (P, b, t) { P.swoosh(b, t, true, 0.18, 0.08); P.thud(b, t + 0.16, 120, 0.3, 0.22); P.knock(b, t + 0.16, 0.18); coins(P, b, t + 0.2, 6, 0.35, 0.11, 7); });
+S('sell_profit', 'trade', 'Продажа в плюс', 'doSell с pnl > 0 — «ка-чинг»', 1.8, function (P, b, t) { P.knock(b, t, 0.2, 1200); P.knock(b, t + 0.07, 0.16, 1000); P.rustle(b, t + 0.12, 0.3, 0.1); P.coin(b, t + 0.42, 0.2, 1.1); coins(P, b, t + 0.47, 8, 0.5, 0.1, 9); P.sparkle(b, t + 0.45, 0.7, 0.1); });
+S('sell_loss', 'trade', 'Продажа в минус', 'doSell с pnl < 0 — без «наказания», мягко', 1.1, function (P, b, t) { P.knock(b, t, 0.14, 1100); deflate(b, t + 0.05, 0.55, 0.12); P.thud(b, t + 0.5, 90, 0.18, 0.25); });
+S('limit_place', 'trade', 'Лимитный ордер выставлен', 'Ордер «приколот» к цене', 0.6, function (P, b, t) { P.click(b, t, 0.14, 2400); P.knock(b, t + 0.07, 0.2, 1500); P.thud(b, t + 0.07, 200, 0.1, 0.08); });
+S('limit_fill', 'trade', 'Лимитный ордер исполнен', 'Срабатывает в фоне — заметный, но короткий', 1, function (P, b, t) { P.pop(b, t, 0.14); P.pop(b, t + 0.09, 0.14, 6500); coins(P, b, t + 0.18, 4, 0.25, 0.1, 11); });
+S('order_cancel', 'trade', 'Отмена ордера', 'Ордер снят', 0.5, function (P, b, t) { P.rustle(b, t, 0.12, 0.1); P.swoosh(b, t + 0.05, false, 0.15, 0.07); });
+
+/* Фьючерсы */
+S('long', 'futures', 'Открыть лонг', 'Ставка на рост', 1, function (P, b, t) { P.click(b, t, 0.16); P.swoosh(b, t + 0.02, true, 0.35, 0.12); P.thud(b, t + 0.36, 140, 0.24, 0.2); P.knock(b, t + 0.36, 0.14, 1800); });
+S('short', 'futures', 'Открыть шорт', 'Ставка на падение', 1, function (P, b, t) { P.click(b, t, 0.16); P.swoosh(b, t + 0.02, false, 0.35, 0.12); P.thud(b, t + 0.36, 80, 0.28, 0.25); P.knock(b, t + 0.36, 0.14, 900); });
+S('leverage', 'futures', 'Плечо ×N', 'Ползунок плеча — щелчки плотнее и жёстче с риском', 1.1, function (P, b, t) { var tt = 0, gap = 0.11; for (var i = 0; i < 10; i++) { P.click(b, t + tt, 0.07 + i * 0.012, 1800 + i * 300); tt += gap; gap *= 0.86; } P.thud(b, t + tt, 100, 0.18, 0.2); });
+S('tp', 'futures', 'Тейк-профит', 'TP сработал', 1.4, function (P, b, t) { P.knock(b, t, 0.2, 1400); P.pop(b, t + 0.08, 0.16, 6000); coins(P, b, t + 0.15, 7, 0.45, 0.1, 13); P.sparkle(b, t + 0.2, 0.6, 0.09); });
+S('sl', 'futures', 'Стоп-лосс', 'SL сработал — позиция спасена', 1, function (P, b, t) { P.knock(b, t, 0.2, 900); P.thud(b, t + 0.01, 110, 0.22, 0.2); P.swoosh(b, t + 0.1, false, 0.3, 0.07); });
+S('liquidation', 'futures', 'Ликвидация', 'Маржа сгорела — драматично, но без жести', 2.2, function (P, b, t) { for (var k = 0; k < 3; k++) P.buzz(b, t + k * 0.2, 0.12, 0.1); P.crack(b, t + 0.65, 0.2); deflate(b, t + 0.7, 1.1, 0.14); P.thud(b, t + 0.65, 60, 0.4, 0.6); });
+S('funding', 'futures', 'Фандинг', 'Раз в час: списание/начисление', 0.5, function (P, b, t) { P.rustle(b, t, 0.15, 0.08); P.coin(b, t + 0.15, 0.1, 0.9); });
+S('margin', 'futures', 'Долить маржу / перевод', 'Деньги спот → фьючерсы', 0.7, function (P, b, t) { P.swoosh(b, t, true, 0.2, 0.08); coins(P, b, t + 0.1, 4, 0.2, 0.09, 15); P.knock(b, t + 0.35, 0.14); });
+
+/* Портфель */
+S('period', 'portfolio', 'Период графика', '30м · 1ч · 3ч · Всё', 0.3, function (P, b, t) { P.click(b, t, 0.15, 2800); });
+S('pnl_count', 'portfolio', 'Счётчик капитала', 'Одометр докручивает сумму', 1.3, function (P, b, t) { var tt = 0, gap = 0.03; while (tt < 0.95) { P.click(b, t + tt, 0.07, 3400); tt += gap; gap *= 1.07; } P.knock(b, t + tt + 0.02, 0.16); });
+S('scrub', 'portfolio', 'Скраб по графику', 'Палец ведёт по кривой капитала', 0.7, function (P, b, t) { P.rustle(b, t, 0.55, 0.06); for (var i = 0; i < 6; i++) P.click(b, t + i * 0.09, 0.04, 2500 + (i % 3) * 600); });
+S('pie', 'portfolio', 'Сектор распределения', 'Тап по сектору диаграммы', 0.4, function (P, b, t) { P.pop(b, t, 0.15, 4400); P.click(b, t + 0.02, 0.08); });
+
+/* Рейтинг */
+S('rank_up', 'rating', 'Место выросло', 'Обогнал соседа / новый ранг', 1.3, function (P, b, t) { P.swoosh(b, t, true, 0.3, 0.12); P.knock(b, t + 0.3, 0.18, 1600); P.thud(b, t + 0.3, 150, 0.2, 0.15); P.sparkle(b, t + 0.32, 0.5, 0.08); });
+S('rank_down', 'rating', 'Место упало', 'Тебя обогнали', 0.8, function (P, b, t) { P.swoosh(b, t, false, 0.28, 0.1); P.thud(b, t + 0.28, 90, 0.16, 0.2); });
+S('podium', 'rating', 'Пьедестал (топ-3)', 'Попал на пьедестал', 2.6, function (P, b, t) { each([0, 0.3, 0.6], function (o, i) { P.thud(b, t + o, 80, 0.22 + i * 0.04, 0.25); P.knock(b, t + o, 0.1, 900); }); crowd(b, t + 0.6, 1.8, 0.07); P.sparkle(b, t + 0.62, 1.2, 0.1); coins(P, b, t + 0.7, 8, 0.8, 0.07, 17); });
+S('refresh', 'rating', 'Обновить рейтинг', 'Кнопка «сейчас» / потянуть вниз', 0.5, function (P, b, t) { P.rustle(b, t, 0.2, 0.08); P.swoosh(b, t + 0.05, true, 0.18, 0.06); P.click(b, t + 0.24, 0.14); });
+
+/* Профиль */
+S('achievement', 'profile', 'Достижение открыто', 'Окно «Достижение открыто»', 2, function (P, b, t) { P.swoosh(b, t, true, 0.3, 0.1); P.thud(b, t + 0.3, 100, 0.26, 0.3); P.knock(b, t + 0.3, 0.16, 1300); P.sparkle(b, t + 0.32, 1, 0.12); });
+S('level_up', 'profile', 'Новый класс трейдера', 'Новичок → Ученик → … → Легенда', 2.8, function (P, b, t) { P.rustle(b, t, 0.5, 0.08); P.swoosh(b, t + 0.1, true, 0.55, 0.14); P.thud(b, t + 0.65, 70, 0.36, 0.5); P.crack(b, t + 0.65, 0.06); coins(P, b, t + 0.75, 12, 1, 0.09, 19); P.sparkle(b, t + 0.7, 1.5, 0.12); });
+S('equip', 'profile', 'Надеть титул / рамку', 'Примерочная: «Надеть»', 0.5, function (P, b, t) { P.swoosh(b, t, true, 0.1, 0.05); P.knock(b, t + 0.08, 0.18, 1500); P.click(b, t + 0.12, 0.1); });
+S('avatar', 'profile', 'Выбор аватарки', 'Тап по аватарке в сетке', 0.4, function (P, b, t) { P.pop(b, t, 0.15, 4800); });
+S('ach_points', 'profile', 'Очки достижений', '«Забрать» — скидка комиссии растёт', 0.9, function (P, b, t) { P.knock(b, t, 0.16); coins(P, b, t + 0.08, 5, 0.3, 0.1, 21); P.pop(b, t + 0.45, 0.12, 6000); });
+
+/* Колесо */
+S('spin_start', 'wheel', 'Старт колеса', 'Колесо сорвалось с места', 1, function (P, b, t) { P.knock(b, t, 0.2, 800); P.swoosh(b, t + 0.02, true, 0.6, 0.14); for (var i = 0; i < 8; i++) P.click(b, t + 0.1 + i * 0.07 * (1 - i * 0.07), 0.08, 2600); });
+S('wheel_ticks', 'wheel', 'Щелчки по секторам', 'Замедляются вместе с колесом', 4, function (P, b, t) { var tt = 0, gap = 0.04; while (tt < 3.6) { P.click(b, t + tt, 0.1, 2800); tt += gap; gap *= 1.085; } P.knock(b, t + tt, 0.14, 1200); });
+S('win_small', 'wheel', 'Обычный приз', '$, скидка комиссии', 1.4, function (P, b, t) { P.thud(b, t, 130, 0.2, 0.2); P.pop(b, t + 0.05, 0.14, 5600); coins(P, b, t + 0.1, 6, 0.5, 0.1, 23); });
+S('win_big', 'wheel', 'Джекпот-сектор', 'Самый крупный приз', 3, function (P, b, t) { P.thud(b, t, 70, 0.34, 0.5); P.crack(b, t, 0.05); P.swoosh(b, t + 0.05, true, 0.4, 0.12); coins(P, b, t + 0.3, 26, 1.8, 0.1, 25); P.sparkle(b, t + 0.35, 2, 0.12); crowd(b, t + 0.4, 1.6, 0.05); });
+S('near_miss', 'wheel', '«Совсем рядом был»', 'Стрелка остановилась у джекпота', 1.2, function (P, b, t) { P.click(b, t, 0.14, 2800); P.click(b, t + 0.28, 0.12, 2800); P.click(b, t + 0.62, 0.1, 2800); deflate(b, t + 0.65, 0.45, 0.08); });
+
+/* Уведомления */
+S('price_alert', 'alerts', 'Алерт цены', 'Цена дошла до уровня', 1, function (P, b, t) { P.pop(b, t, 0.2, 5600); P.pop(b, t + 0.12, 0.2, 5600); P.knock(b, t + 0.24, 0.12, 1800); P.sparkle(b, t + 0.25, 0.25, 0.07); });
+S('move_alert', 'alerts', 'Резкое движение', 'Монета ±5% за короткое время', 0.8, function (P, b, t) { P.swoosh(b, t, true, 0.22, 0.13); P.knock(b, t + 0.2, 0.18, 1400); P.knock(b, t + 0.28, 0.14, 1400); });
+S('news_alert', 'alerts', 'Новость по монете', 'Новость по избранной монете', 1, function (P, b, t) { P.rustle(b, t, 0.4, 0.12); P.pop(b, t + 0.4, 0.16); });
+S('alert_set', 'alerts', 'Алерт создан', 'Колокольчик на монете включён', 0.6, function (P, b, t) { P.click(b, t, 0.14); P.pop(b, t + 0.06, 0.14, 6500); });
+/* ===================== Музыка ===================== */
+function mkI(b) {
+  return {
+    kick: function (t, g) { g = g == null ? 0.8 : g; T(b, t, { f: 160, f2: 42, pt: 0.11, d: 0.38, g: g }); N(b, t, { d: 0.02, g: g * 0.2, ft: 'highpass', fc: 3000 }); },
+    snare: function (t, g, rv) { g = g == null ? 0.35 : g; N(b, t, { d: 0.2, g: g, ft: 'bandpass', fc: 1900, q: 0.8, rv: rv == null ? 0.25 : rv }); T(b, t, { f: 200, f2: 150, d: 0.11, g: g * 0.6, type: 'triangle' }); },
+    clap: function (t, g) { g = g || 0.3; for (var i = 0; i < 3; i++) N(b, t + i * 0.011, { d: i === 2 ? 0.16 : 0.02, g: g, ft: 'bandpass', fc: 1300, q: 1.2, rv: 0.3 }); },
+    hat: function (t, g, open) { N(b, t, { d: open ? 0.22 : 0.045, g: g || 0.1, ft: 'highpass', fc: 7500 }); },
+    shaker: function (t, g) { N(b, t, { d: 0.07, a: 0.02, g: g || 0.06, ft: 'bandpass', fc: 5000, q: 0.6 }); },
+    tick: function (t, g) { T(b, t, { f: 4200, d: 0.018, g: g || 0.05 }); },
+    rim: function (t, g) { T(b, t, { f: 1700, d: 0.03, g: g || 0.1, type: 'triangle' }); N(b, t, { d: 0.012, g: (g || 0.1) * 0.5, ft: 'highpass', fc: 2500 }); },
+    tom: function (t, f, g) { f = f || 110; T(b, t, { f: f * 1.6, f2: f, pt: 0.08, d: 0.45, g: g || 0.45, rv: 0.3 }); },
+    timp: function (t, f, g) { f = f || 65; g = g || 0.55; T(b, t, { f: f * 1.3, f2: f, pt: 0.05, d: 1.1, g: g, rv: 0.5 }); N(b, t, { d: 0.08, g: g * 0.2, ft: 'lowpass', fc: 500 }); },
+    crackle: function (t, d) { N(b, t, { d: d, a: 0.05, s: d * 0.8, g: 0.01, ft: 'highpass', fc: 2500 }); },
+    sub: function (t, f, d, g) { T(b, t, { f: f, d: d, g: g || 0.35, a: 0.01, s: d * 0.6 }); },
+    bass: function (t, f, d, g, type, fc) { fc = fc || 700; T(b, t, { f: f, d: d, g: g || 0.3, type: type || 'sawtooth', fc: fc, fc2: fc * 0.4, q: 3, a: 0.006, s: d * 0.5 }); },
+    tri: function (t, f, d, g) { T(b, t, { f: f, d: d, g: g || 0.22, type: 'triangle', a: 0.005, s: d * 0.7 }); },
+    sq: function (t, f, d, g) { T(b, t, { f: f, d: d, g: g || 0.06, type: 'square', fc: 2800, a: 0.004, s: d * 0.6, dl: 0.2 }); },
+    pad: function (t, ns, d, g, type, fc) { each(ns, function (n) { [-9, 9].forEach(function (det) { T(b, t, { f: m(n), det: det, d: d, g: g || 0.06, type: type || 'sawtooth', fc: fc || 1400, a: Math.min(0.6, d * 0.3), s: d * 0.4, rv: 0.5 }); }); }); },
+    rhodes: function (t, ns, d, g) { each(ns, function (n, i) { FM(b, t + i * 0.008, { f: m(n), r: 1, ix: 0.8, d: d, g: g || 0.08, rv: 0.3 }); }); },
+    stab: function (t, ns, g, fc) { each(ns, function (n) { T(b, t, { f: m(n), d: 0.22, g: g || 0.05, type: 'sawtooth', fc: fc || 2200, fc2: 300, rv: 0.25 }); }); },
+    pluck: function (t, f, g, type, d) { T(b, t, { f: f, d: d || 0.3, g: g || 0.1, type: type || 'sawtooth', fc: 4000, fc2: 300, dl: 0.25, rv: 0.15 }); },
+    bell: function (t, f, g, d) { FM(b, t, { f: f, r: 3.5, ix: 2, d: d || 1.2, g: g || 0.08, rv: 0.45 }); },
+    mar: function (t, f, g, d) { T(b, t, { f: f, d: d || 0.5, g: g || 0.16, rv: 0.2 }); T(b, t, { f: f * 4, d: 0.07, g: (g || 0.16) * 0.3 }); },
+    lead: function (t, f, d, g, type) { T(b, t, { f: f, d: d, g: g || 0.07, type: type || 'triangle', a: 0.02, s: d * 0.6, vib: 5, rv: 0.3, dl: 0.25 }); },
+    brass: function (t, ns, d, g) { each(ns, function (n) { T(b, t, { f: m(n), d: d, g: g || 0.05, type: 'sawtooth', fc: 500, fc2: 2600, a: 0.06, s: d * 0.5, rv: 0.4 }); }); },
+    riser: function (t, d, g) { N(b, t, { d: d, a: d * 0.9, g: g || 0.1, ft: 'bandpass', fc: 400, fc2: 6000, q: 2, rv: 0.4 }); }
+  };
+}
+var PENT = [72, 74, 76, 79, 81, 84];
+function pk(arr, a, b) { return arr[Math.floor(hr(a, b) * arr.length) % arr.length]; }
+
+/* Одна общая тема для всей игры: 5 аранжировок на общей гармонии Fmaj7 → Em7 → Dm7 → Cmaj7.
+   Тема не зависит от вкладки и не перезапускается при навигации. */
+var PROG = [[53, 57, 60, 64], [52, 55, 59, 62], [50, 53, 57, 60], [48, 52, 55, 59]];
+var PROG9 = [[53, 57, 60, 64, 67], [52, 55, 59, 62, 66], [50, 53, 57, 60, 64], [48, 52, 55, 59, 62]];
+var TRACKS = [
+ { id: 'theme', name: 'TradeUp Theme', mood: 'одна фоновая тема на всю игру', bpm: 84, variants: [
+  { name: 'Lo-fi', bpm: 78, swing: 0.18, chords: PROG, step: function (I, t, s, bar, ch, k, sp) {
+    if (s === 0) { I.rhodes(t, ch, sp * 15, 0.06); I.sub(t, m(ch[0] - 12), sp * 7, 0.3); I.crackle(t, sp * 16); }
+    if (s === 8) I.sub(t, m(ch[0] - 12), sp * 6, 0.24);
+    if (s === 0 || s === 10 || (s === 7 && bar % 2)) I.kick(t, 0.55);
+    if (s === 4 || s === 12) I.snare(t, 0.16, 0.3);
+    if (s % 2 === 0) I.hat(t, s % 4 ? 0.03 : 0.05);
+    if (k > 0.35 && [2, 6, 9, 14].indexOf(s) >= 0 && hr(bar, s) > 0.35) I.bell(t, m(pk(PENT, s, bar)), 0.045, 1); } },
+  { name: 'Ambient', bpm: 70, swing: 0, chords: PROG, step: function (I, t, s, bar, ch, k, sp) {
+    if (s === 0) { I.pad(t, ch.map(function (n) { return n + 12; }), sp * 17, 0.03, 'triangle', 2200); I.sub(t, m(ch[0] - 12), sp * 16, 0.2); }
+    if (s % 3 === 0 && hr(bar, s) > 0.3) I.bell(t, m(pk(ch, s, bar) + 24), 0.04, 2);
+    if (k > 0.5 && s % 4 === 2) I.shaker(t, 0.03);
+    if (k > 0.75 && s === 8) I.kick(t, 0.3); } },
+  { name: 'Jazz-hop', bpm: 86, swing: 0.22, chords: PROG9, step: function (I, t, s, bar, ch, k, sp) {
+    if (s % 4 === 0) I.tri(t, m(ch[0] - 12 + [0, 7, 12, 10][s / 4]), sp * 3.6, 0.24);
+    if (s === 0) I.rhodes(t, ch.slice(1), sp * 3, 0.06);
+    if (s === 7 && hr(bar, 7) > 0.3) I.rhodes(t, ch.slice(1), sp * 2, 0.05);
+    if (s === 0 || s === 10 || (s === 6 && k > 0.4)) I.kick(t, 0.5);
+    if (s === 4 || s === 12) { I.snare(t, 0.1, 0.2); I.shaker(t, 0.05); }
+    if (s % 4 === 0 || s % 4 === 3) I.hat(t, 0.035, s % 4 === 0);
+    if (k > 0.6 && s % 2 === 0 && hr(s, bar) > 0.6) I.mar(t, m(pk(ch, bar, s) + 12), 0.08, 0.4); } },
+  { name: 'Deep house', bpm: 118, swing: 0, chords: PROG, step: function (I, t, s, bar, ch, k, sp) {
+    if (s % 4 === 0) I.kick(t, 0.7);
+    if (s % 4 === 2) { I.hat(t, 0.08, true); I.bass(t, m(ch[0] - 24), sp * 1.6, 0.3, 'sawtooth', 500); }
+    if ((s === 4 || s === 12) && k > 0.2) I.clap(t, 0.2);
+    if (s === 3 || s === 10) I.stab(t, ch, 0.035, 1400);
+    if (k > 0.55) I.pluck(t, m(ch[s % 4] + 12 + (s % 8 > 3 ? 12 : 0)), 0.03, 'square', 0.16); } },
+  { name: 'Synthwave', bpm: 100, swing: 0, chords: PROG, step: function (I, t, s, bar, ch, k, sp) {
+    if (s === 0) I.pad(t, ch, sp * 16, 0.03, 'sawtooth', 900 + k * 1400);
+    if (s % 2 === 0) I.bass(t, m(ch[0] - 24 + (s % 4 ? 12 : 0)), sp * 1.8, 0.26, 'sawtooth', 600 + k * 500);
+    if (s % 4 === 0) I.kick(t, 0.6);
+    if (s === 4 || s === 12) I.snare(t, 0.22, 0.45);
+    if (s % 2 === 1) I.hat(t, 0.035);
+    if (k > 0.4 && s % 2 === 0) I.sq(t, m(ch[(s >> 1) % 4] + 24), sp * 1.2, 0.03);
+    if (bar % 4 === 3 && s === 8) I.riser(t, sp * 8, 0.06); } }
+ ] }
+];
+/* ===================== Живое воспроизведение ===================== */
+var LS = 'tu_snd_concept_v1';
+var ST = (function () { try { return JSON.parse(localStorage.getItem(LS)) || {}; } catch (e) { return {}; } })();
+ST.sfx = ST.sfx || {}; ST.mus = ST.mus || {};
+function saveST() { try { localStorage.setItem(LS, JSON.stringify(ST)); } catch (e) {} }
+var ctx = null, LIVE = null, ana = null, INT = 0.5, MUS_ON = true, SFX_ON = true;
+function ensure() {
+  if (!ctx) {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    LIVE = makeGraph(ctx, ctx.destination);
+    ana = ctx.createAnalyser(); ana.fftSize = 256; LIVE.comp.connect(ana);
+    applyVol(); drawViz();
+  }
+  if (ctx.state === 'suspended' && !adOn) ctx.resume();
+}
+function applyVol() {
+  if (!LIVE) return;
+  var t = ctx.currentTime;
+  LIVE.music.out.gain.setTargetAtTime(MUS_ON ? 0.9 * $('#v-mus').value / 100 : 0, t, 0.05);
+  LIVE.sfx.out.gain.setTargetAtTime(SFX_ON ? $('#v-sfx').value / 100 : 0, t, 0.05);
+}
+function $(s) { return document.querySelector(s); }
+function sfxById(id) { for (var i = 0; i < SFX.length; i++) if (SFX[i].id === id) return SFX[i]; }
+function selV(id) { var v = ST.sfx[id]; return v == null ? (ST.pack || 0) : v; }
+/* Звук: дакинг музыки на ~0.35с, чтобы удар не тонул. */
+function play(id, v) {
+  ensure(); var s = sfxById(id); if (!s) return;
+  if (v == null) v = selV(id);
+  var t = ctx.currentTime + 0.01;
+  try { s.fn(PACKS[v], LIVE.sfx, t, v); } catch (e) { console.error(id, e); }
+  var p = LIVE.music.post.gain; p.cancelScheduledValues(t); p.setTargetAtTime(0.55, t, 0.02); p.setTargetAtTime(1, t + 0.25, 0.25);
+  var card = document.getElementById('c-' + id); if (card) { card.classList.add('flash'); setTimeout(function () { card.classList.remove('flash'); }, 300); }
+}
+/* Секвенсор: lookahead-планировщик, кроссфейд между темами. */
+var SEQ = { list: [], timer: 0 }, CUR = null;
+function startTrack(tid, v) {
+  ensure(); var tr = TRACKS.filter(function (x) { return x.id === tid; })[0]; if (!tr) return;
+  if (v == null) v = ST.mus[tid] || 0;
+  if (CUR && CUR.tid === tid && CUR.v === v) return;
+  var now = ctx.currentTime;
+  SEQ.list.forEach(function (i) { if (!i.stopAt) { i.g.gain.setTargetAtTime(0.0001, now, 0.35); i.stopAt = now + 1.8; } });
+  var g = ctx.createGain(); g.gain.setValueAtTime(0.0001, now); g.gain.exponentialRampToValueAtTime(1, now + 1.2); g.connect(LIVE.music.in);
+  var inst = { tr: tr, v: v, g: g, I: mkI({ c: ctx, in: g, rev: LIVE.music.rev, dly: LIVE.music.dly }), next: now + 0.08, step: 0, stopAt: 0 };
+  LIVE.music.dly.delayTime.setTargetAtTime(60 / (tr.variants[v].bpm || tr.bpm) * 0.75, now, 0.1);
+  SEQ.list.push(inst); CUR = { tid: tid, v: v };
+  if (!SEQ.timer) SEQ.timer = setInterval(seqTick, 25);
+  markPlaying();
+}
+function stopMusic() {
+  if (!ctx) return; var now = ctx.currentTime;
+  SEQ.list.forEach(function (i) { if (!i.stopAt) { i.g.gain.setTargetAtTime(0.0001, now, 0.3); i.stopAt = now + 1.5; } });
+  CUR = null; markPlaying();
+}
+function seqTick() {
+  var now = ctx.currentTime;
+  SEQ.list = SEQ.list.filter(function (i) { if (i.stopAt && now > i.stopAt) { i.g.disconnect(); return false; } return true; });
+  SEQ.list.forEach(function (i) {
+    if (i.stopAt) return;
+    var vv = i.tr.variants[i.v], sp = 60 / (vv.bpm || i.tr.bpm) / 4;
+    while (i.next < now + 0.15) {
+      var s = i.step % 16, bar = Math.floor(i.step / 16), ch = vv.chords[bar % vv.chords.length], t = i.next;
+      if (vv.swing && s % 2) t += sp * vv.swing;
+      try { vv.step(i.I, t, s, bar, ch, INT, sp); } catch (e) { console.error(e); }
+      i.next += sp; i.step++;
+    }
+  });
+  if (!SEQ.list.length) { clearInterval(SEQ.timer); SEQ.timer = 0; }
+}
+/* ===================== Экспорт WAV ===================== */
+function wav(buf) {
+  var ch = buf.numberOfChannels, len = buf.length, sr = buf.sampleRate, ab = new ArrayBuffer(44 + len * ch * 2), dv = new DataView(ab), p = 0;
+  function ws(s) { for (var i = 0; i < s.length; i++) dv.setUint8(p++, s.charCodeAt(i)); }
+  ws('RIFF'); dv.setUint32(p, 36 + len * ch * 2, true); p += 4; ws('WAVEfmt '); dv.setUint32(p, 16, true); p += 4; dv.setUint16(p, 1, true); p += 2; dv.setUint16(p, ch, true); p += 2;
+  dv.setUint32(p, sr, true); p += 4; dv.setUint32(p, sr * ch * 2, true); p += 4; dv.setUint16(p, ch * 2, true); p += 2; dv.setUint16(p, 16, true); p += 2; ws('data'); dv.setUint32(p, len * ch * 2, true); p += 4;
+  var data = []; for (var c = 0; c < ch; c++) data.push(buf.getChannelData(c));
+  for (var i = 0; i < len; i++) for (var c2 = 0; c2 < ch; c2++) { var x = Math.max(-1, Math.min(1, data[c2][i])); dv.setInt16(p, x < 0 ? x * 0x8000 : x * 0x7fff, true); p += 2; }
+  return new Blob([ab], { type: 'audio/wav' });
+}
+function renderSfx(id, v) {
+  var s = sfxById(id), dur = (s.dur || 1.5) + 1.2, off = new OfflineAudioContext(2, Math.ceil(44100 * dur), 44100), G = makeGraph(off, off.destination);
+  s.fn(PACKS[v], G.sfx, 0.03, v); return off.startRendering();
+}
+function renderLoop(tid, v, bars) {
+  var tr = TRACKS.filter(function (x) { return x.id === tid; })[0], vv = tr.variants[v], bpm = vv.bpm || tr.bpm, sp = 60 / bpm / 4, total = bars * 16 * sp + 2.5;
+  var off = new OfflineAudioContext(2, Math.ceil(44100 * total), 44100), G = makeGraph(off, off.destination);
+  G.music.out.gain.value = 0.9; G.music.dly.delayTime.value = 60 / bpm * 0.75;
+  var I = mkI({ c: off, in: G.music.in, rev: G.music.rev, dly: G.music.dly });
+  for (var st = 0; st < bars * 16; st++) { var s = st % 16, bar = Math.floor(st / 16), t = 0.05 + st * sp + (vv.swing && s % 2 ? sp * vv.swing : 0); vv.step(I, t, s, bar, vv.chords[bar % vv.chords.length], INT, sp); }
+  return off.startRendering();
+}
+function download(blob, name) { var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; document.body.appendChild(a); a.click(); setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 1000); }
+function tip(t) { var e = $('#tip'); e.textContent = t; e.classList.add('on'); clearTimeout(e.__t); e.__t = setTimeout(function () { e.classList.remove('on'); }, 1800); }
+
+/* ===================== Сценарии ===================== */
+var SCN = [
+  { name: 'Первая сделка', d: 'рынок → монета → покупка → продажа в плюс → достижение', tab: 'market', seq: [[0, 'tab'], [0.5, 'open_coin'], [1.3, 'sheet_open'], [1.9, 'chip'], [2.1, 'chip'], [2.6, 'buy'], [3.4, 'coin_hit'], [3.7, 'toast'], [4.4, 'tick_up'], [4.9, 'tick_up'], [5.6, 'sheet_open'], [6.2, 'sell_profit'], [7.6, 'achievement']] },
+  { name: 'Ликвидация', d: 'фьючерсы → плечо ×50 → лонг → падение → ликвидация', tab: 'futures', seq: [[0, 'tab'], [0.5, 'sheet_open'], [1, 'leverage'], [2.2, 'long'], [3.1, 'tick_down'], [3.5, 'tick_down'], [3.8, 'move_alert'], [4.6, 'tick_down'], [5.1, 'liquidation'], [7.4, 'toast']] },
+  { name: 'Колесо удачи', d: 'старт → щелчки → «совсем рядом» и джекпот', tab: 'wheel', seq: [[0, 'tap'], [0.2, 'spin_start'], [0.3, 'wheel_ticks'], [4.1, 'win_big'], [6.8, 'coin_hit']] },
+  { name: 'Утро трейдера', d: 'меню → бонус → задание → сундук → новый класс', tab: 'lobby', seq: [[0, 'tab'], [0.6, 'bonus'], [2.8, 'streak'], [3.9, 'quest_done'], [5, 'xp'], [5.6, 'chest'], [7.6, 'pnl_count'], [9.1, 'level_up']] },
+  { name: 'Гонка в рейтинге', d: 'обновить → обогнал → пьедестал', tab: 'rating', seq: [[0, 'tab'], [0.6, 'refresh'], [1.4, 'rank_up'], [2.6, 'rank_down'], [3.6, 'rank_up'], [4.9, 'podium']] }
+];
+var scnTimers = [];
+function runScn(i, btn) {
+  ensure(); scnTimers.forEach(clearTimeout); scnTimers = [];
+  document.querySelectorAll('.scn button').forEach(function (b) { b.classList.remove('run'); });
+  btn.classList.add('run'); var sc = SCN[i]; document.querySelectorAll('#tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === sc.tab); }); if (MUS_ON && !CUR) startTrack('theme');
+  var end = 0;
+  sc.seq.forEach(function (x) { end = Math.max(end, x[0]); scnTimers.push(setTimeout(function () { play(x[1]); }, x[0] * 1000)); });
+  scnTimers.push(setTimeout(function () { btn.classList.remove('run'); }, end * 1000 + 2000));
+}
+/* ===================== Интерфейс ===================== */
+/* Верхняя панель — навигация по группам звуков; музыка при этом не меняется. */
+var TABBAR = [['music', '🎵', 'Музыка']].concat(GROUPS.map(function (g) { return [g.id, g.icon, g.id === 'profile' ? 'Профиль' : g.name]; }));
+var curTab = null;
+function selectTab(id, quiet) {
+  curTab = id;
+  document.querySelectorAll('#tabs button').forEach(function (b) { b.classList.toggle('on', b.dataset.t === id); });
+  if (!quiet) play('tab');
+  var sec = document.getElementById('g-' + id); if (sec) window.scrollTo({ top: sec.getBoundingClientRect().top + window.scrollY - ($('.bar') ? $('.bar').offsetHeight + 8 : 0), behavior: quiet ? 'auto' : 'smooth' });
+}
+function markPlaying() {
+  document.querySelectorAll('.mus .vars button').forEach(function (b) { b.classList.toggle('playing', !!CUR && CUR.tid === b.dataset.t && CUR.v === +b.dataset.v); });
+}
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); }
+function build() {
+  $('#tabs').innerHTML = TABBAR.map(function (x) { return '<button data-t="' + x[0] + '"><i>' + x[1] + '</i>' + x[2] + '</button>'; }).join('');
+  $('#pack').innerHTML = PACKS.map(function (p, i) { return '<button data-p="' + i + '" title="' + p.hint + '">' + String.fromCharCode(65 + i) + ' · ' + p.name + '</button>'; }).join('');
+  var h = '';
+  h += '<section><h2>🎬 Сценарии <small>как это звучит в игре подряд</small></h2><p class="lead">Цепочки реальных действий игрока с выбранными (★) вариантами. Музыка — одна общая тема, при навигации не прерывается.</p><div class="scn">' +
+    SCN.map(function (s, i) { return '<button data-s="' + i + '"><b>▶ ' + s.name + '</b><span>' + s.d + '</span></button>'; }).join('') + '</div></section>';
+  var TR = TRACKS[0];
+  h += '<section id="g-music"><h2>🎵 Фоновая музыка <small>1 тема × ' + TR.variants.length + ' аранжировки</small></h2><p class="lead">Одна тема на всю игру — играет после первого касания и не зависит от вкладки. Все аранжировки на одной гармонии (Fmaj7 → Em7 → Dm7 → Cmaj7), поэтому звучат как одна «фирменная» мелодия игры. Выбери одну ★. Ползунок «Напряжение» добавляет слои — в игре его можно привязать к волатильности рынка или открытым фьючерсам.</p><div class="grid mus">';
+  TR.variants.forEach(function (v, i) {
+    h += '<div class="card"><h3>' + esc(TR.name) + ' · ' + esc(v.name) + '</h3><div class="meta"><span class="tag">' + v.bpm + ' BPM</span>' + (v.swing ? '<span class="tag">свинг</span>' : '') + '</div><div class="vars"><button data-t="' + TR.id + '" data-v="' + i + '" class="' + ((ST.mus[TR.id] || 0) === i ? 'sel' : '') + '"><span>▶ ' + esc(v.name) + '</span><em>⬇ WAV</em></button></div></div>';
+  });
+  h += '</div></section>';
+  GROUPS.forEach(function (g) {
+    var list = SFX.filter(function (s) { return s.g === g.id; });
+    h += '<section id="g-' + g.id + '"><h2>' + g.icon + ' ' + g.name + ' <small>' + list.length + ' звуков × 3</small></h2><p class="lead">' + g.lead + '</p><div class="grid">';
+    list.forEach(function (s) {
+      var sv = selV(s.id);
+      h += '<div class="card" id="c-' + s.id + '"><button class="dl" data-dl="' + s.id + '" title="Скачать выбранный вариант WAV">⬇</button><h3>' + esc(s.name) + '</h3><div class="when">' + esc(s.when) + ' · <code>' + s.id + '</code></div><div class="vars">' +
+        PACKS.map(function (p, i) { return '<button data-id="' + s.id + '" data-v="' + i + '" class="' + (sv === i ? 'sel' : '') + '"><span class="p' + i + '">' + String.fromCharCode(65 + i) + '</span><em>' + p.name + '</em></button>'; }).join('') + '</div></div>';
+    });
+    h += '</div></section>';
+  });
+  h += '<section><h2>🧩 Как встроить в игру</h2><div class="two">' +
+    '<div class="note"><h3>Правила Яндекс Игр и UX</h3><ul>' +
+    '<li>Звук и музыка стартуют только после первого касания (политика автоплея) — у нас это «Начать торговать».</li>' +
+    '<li><b>game_api_pause</b>, реклама, сворачивание вкладки → плавно в 0 и <code>ctx.suspend()</code>; после — <code>resume()</code>. Кнопка «Имитация рекламы» показывает это.</li>' +
+    '<li>В настройках: «Музыка» и «Звуки» отдельно, громкость, по умолчанию музыка 40%, звуки 80%. Сохранять в сейве.</li>' +
+    '<li>Тики цены — не чаще 1 раза в 400 мс и только для открытой монеты, иначе 200 строк рынка превратятся в шум.</li>' +
+    '<li>Дакинг: громкие звуки на 0.3 с приглушают музыку — уже сделано в концепте.</li>' +
+    '<li>При «Меньше движения» — оставлять звуки, но убрать каскады монет (1 монета вместо 9).</li>' +
+    '<li>Вес: 0 КБ — всё генерируется кодом (~25 КБ JS). Если нужны файлы — ⬇ WAV → конвертировать в OGG/MP3 по 20–60 КБ.</li>' +
+    '<li>Suno: на бесплатном тарифе треки нельзя использовать коммерчески, а игра с рекламой — коммерческая. Для Suno нужна платная подписка; синтез кодом этой проблемы не имеет.</li></ul></div>' +
+    '<div class="note"><h3>Куда повесить вызовы</h3><pre>' + esc([
+      "// js/sfx.js — тот же движок, что в концепте",
+      "SFX.play('tab')          // setTab()",
+      "SFX.play('sheet_open')   // openSheet(), openModal()",
+      "SFX.play('buy')          // doBuy() → tradeFinish",
+      "SFX.play(pnl >= 0 ? 'sell_profit' : 'sell_loss') // doSell()",
+      "SFX.play('error')        // FX.nudge()",
+      "SFX.play('toast')        // toast() с cls ''",
+      "SFX.play('coin_hit')     // FX.fly onHit",
+      "SFX.play('bonus')        // забрать ежедневный бонус",
+      "SFX.play('achievement')  // Ach: окно «Достижение открыто»",
+      "SFX.play('level_up')     // FX.levelUp() — новый класс",
+      "SFX.play('liquidation')  // Fut: позиция ликвидирована",
+      "SFX.play('wheel_ticks')  // V3W: старт вращения",
+      "SFX.music()              // один раз после первого касания; вкладки музыку не трогают",
+      "SFX.intensity(volatility)// 0..1 — слои музыки",
+      "YaGame.onPause  = SFX.mute;  YaGame.onResume = SFX.unmute;"].join('\n')) + '</pre>' +
+    '<button class="btn gold" id="b-copy">📋 Скопировать мой выбор (★)</button></div></div></section>';
+  $('#content').innerHTML = h;
+  document.querySelectorAll('#pack button').forEach(function (b) { b.classList.toggle('on', +b.dataset.p === (ST.pack || 0)); });
+}
+function bind() {
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    if (b.id === 'go') { ensure(); $('#start').classList.add('off'); if (MUS_ON) startTrack('theme'); return; }
+    if (b.dataset.t && b.closest('#tabs')) { selectTab(b.dataset.t); return; }
+    if (b.dataset.p != null && b.closest('#pack')) {
+      ST.pack = +b.dataset.p; ST.sfx = {}; saveST(); build(); play('toggle'); tip('Пакет «' + PACKS[ST.pack].name + '» выбран для всех звуков'); return; }
+    if (b.dataset.id) {
+      var id = b.dataset.id, v = +b.dataset.v; ST.sfx[id] = v; saveST();
+      b.parentNode.querySelectorAll('button').forEach(function (x) { x.classList.toggle('sel', x === b); });
+      b.classList.remove('play'); void b.offsetWidth; b.classList.add('play'); play(id, v); return; }
+    if (b.dataset.dl) { var dv = selV(b.dataset.dl); renderSfx(b.dataset.dl, dv).then(function (buf) { download(wav(buf), 'tradeup-' + b.dataset.dl + '-' + PACKS[dv].id + '.wav'); }); return; }
+    if (b.dataset.t && b.closest('.mus')) {
+      var tid = b.dataset.t, mv = +b.dataset.v;
+      if (e.target.tagName === 'EM') { tip('Рендерю 8 тактов…'); renderLoop(tid, mv, 8).then(function (buf) { download(wav(buf), 'tradeup-music-' + tid + '-' + (mv + 1) + '.wav'); }); return; }
+      ST.mus[tid] = mv; saveST();
+      document.querySelectorAll('.mus .vars button').forEach(function (x) { x.classList.toggle('sel', x === b); });
+      if (CUR && CUR.tid === tid && CUR.v === mv) { stopMusic(); return; }
+      MUS_ON = true; $('#sw-mus').classList.add('on'); ensure(); applyVol(); startTrack(tid, mv); return; }
+    if (b.dataset.s != null) { runScn(+b.dataset.s, b); return; }
+    if (b.id === 'sw-mus') { MUS_ON = !MUS_ON; b.classList.toggle('on', MUS_ON); ensure(); applyVol(); if (MUS_ON && !CUR) startTrack('theme'); return; }
+    if (b.id === 'sw-sfx') { SFX_ON = !SFX_ON; b.classList.toggle('on', SFX_ON); ensure(); applyVol(); return; }
+    if (b.id === 'b-stop') { stopMusic(); return; }
+    if (b.id === 'b-ad') { adSim(); return; }
+    if (b.id === 'b-copy') {
+      var out = { pack: PACKS[ST.pack || 0].id, sfx: {}, music: '' };
+      SFX.forEach(function (s) { out.sfx[s.id] = PACKS[selV(s.id)].id; });
+      out.music = TRACKS[0].variants[ST.mus.theme || 0].name;
+      var txt = JSON.stringify(out, null, 1);
+      (navigator.clipboard ? navigator.clipboard.writeText(txt) : Promise.reject()).then(function () { tip('Скопировано — пришли это мне'); }, function () { prompt('Скопируйте:', txt); });
+    }
+  });
+  ['#v-mus', '#v-sfx'].forEach(function (s) { $(s).addEventListener('input', function () { ensure(); applyVol(); }); });
+  $('#v-int').addEventListener('input', function () { INT = this.value / 100; });
+  document.addEventListener('visibilitychange', function () { if (!ctx) return; if (document.hidden) ctx.suspend(); else if (!adOn) ctx.resume(); });
+}
+var adOn = false;
+function adSim() {
+  ensure(); adOn = true; $('#ad').classList.add('on');
+  var g = LIVE.master.gain, t = ctx.currentTime; g.cancelScheduledValues(t); g.setTargetAtTime(0.0001, t, 0.05);
+  setTimeout(function () { ctx.suspend(); }, 250);
+  setTimeout(function () { adOn = false; $('#ad').classList.remove('on'); ctx.resume().then(function () { var t2 = ctx.currentTime; g.setTargetAtTime(0.9, t2, 0.2); }); }, 3000);
+}
+function drawViz() {
+  var cv = $('#viz'), c2 = cv.getContext('2d'), arr = new Uint8Array(ana.frequencyBinCount);
+  (function f() {
+    requestAnimationFrame(f); ana.getByteFrequencyData(arr);
+    var w = cv.width, h = cv.height, n = 64, bw = w / n; c2.clearRect(0, 0, w, h);
+    var gr = c2.createLinearGradient(0, h, 0, 0); gr.addColorStop(0, '#b8841c'); gr.addColorStop(1, '#f7d879'); c2.fillStyle = gr;
+    for (var i = 0; i < n; i++) { var v = arr[Math.floor(i * arr.length / n * 0.8)] / 255, bh = Math.max(2, v * h * 0.95); c2.fillRect(i * bw + 2, h - bh, bw - 4, bh); }
+  })();
+}
+/* Самопроверка: офлайн-рендер всех звуков и тем (для отладки, window.__selfTest()). */
+window.__selfTest = function () {
+  var jobs = [];
+  SFX.forEach(function (s) { [0, 1, 2].forEach(function (v) { jobs.push(function () { return renderSfx(s.id, v).then(function (b) { return { k: s.id + ':' + v, b: b }; }); }); }); });
+  TRACKS.forEach(function (t) { t.variants.forEach(function (_, v) { jobs.push(function () { return renderLoop(t.id, v, 2).then(function (b) { return { k: 'music:' + t.id + ':' + v, b: b }; }); }); }); });
+  var res = [];
+  return jobs.reduce(function (p, j) { return p.then(j).then(function (r) { var d = r.b.getChannelData(0), pk = 0, ss = 0; for (var i = 0; i < d.length; i++) { var a = Math.abs(d[i]); if (a > pk) pk = a; ss += d[i] * d[i]; } res.push({ k: r.k, peak: +pk.toFixed(3), rms: +Math.sqrt(ss / d.length).toFixed(4), nan: isNaN(pk) }); }); }, Promise.resolve()).then(function () { return res; });
+};
+build(); bind();
+</script>
+</body>
+</html>

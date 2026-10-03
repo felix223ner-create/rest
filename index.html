@@ -1,0 +1,1541 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0f14">
+  <meta name="color-scheme" content="dark light">
+  <title data-i18n="app_title">TradeUp — trading simulator</title>
+  
+  <script src="/sdk.js"></script>
+  
+  <link rel="stylesheet" href="css/style.css?v=218">
+  <!-- Визуальный слой торгового шита (tu-v2-trade): только оформление,
+     без логики. Откат — удалить файл и эту строку. -->
+  <link rel="stylesheet" href="css/tu-v2.css?v=218">
+  <!-- Фьючерсы: вкладка на рынке, шиты позиции, карточка в портфеле. -->
+  <link rel="stylesheet" href="css/futures.css?v=225">
+  <!-- v3: редизайн по концептам concept/*.html. Фундамент + слой на вкладку. -->
+  <link rel="stylesheet" href="css/v3-base.css?v=218">
+  <link rel="stylesheet" href="css/v3-lobby.css?v=225">
+  <link rel="stylesheet" href="css/v3-market.css?v=222">
+  <link rel="stylesheet" href="css/v3-portfolio.css?v=222">
+  <link rel="stylesheet" href="css/v3-rating.css?v=218">
+  <link rel="stylesheet" href="css/v3-profile.css?v=218">
+  <link rel="stylesheet" href="css/v3-ach.css?v=218">
+  <link rel="stylesheet" href="css/v3-news.css?v=218">
+  <link rel="stylesheet" href="css/v3-wheel.css?v=218">
+  <link rel="stylesheet" href="css/quests.css?v=220">
+  <link rel="stylesheet" href="css/v3-alerts.css?v=218">
+  <link rel="stylesheet" href="css/v3-settings.css?v=223">
+  <link rel="stylesheet" href="css/loader.css?v=221">
+  <!-- Версии скриптов и стилей поднимать РАЗОМ, одной командой:
+     python tools/bump_version.py
+     Иначе новый JS поедет со старым CSS (или наоборот) из кэша и даст
+     битую вёрстку. Номер тут не пишем специально — он устаревает. -->
+  <script>function isDevHost(){return /^(localhost|127\.0\.0\.1|0\.0\.0\.0|10\.|192\.168\.|172\.(1[6-9]|2[0-9]|3[01])\.)/.test(location.hostname);}</script>
+</head>
+<body>
+  <div id="app">
+
+    
+    <section id="scr-loading" class="screen">
+      <div class="splash-bg" aria-hidden="true"></div>
+      <div class="ld"><div class="ld-aurora"></div><div class="ld-grid"></div><div class="ld-fg"><div class="ld-pill rv" style="--d:40"></div><div class="ld-coin"><div class="rays"></div><div class="halo"></div><div class="face"><img src="img/logo-small.png?v=139" alt=""></div><div class="ping"></div></div><div class="ld-name rv" style="--d:80"><b>Trade</b>Up</div><div class="ld-stage rv" style="--d:140"></div><div class="ld-chart rv" style="--d:200"><svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><linearGradient id="ld-ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="ga0"/><stop offset="1" class="ga1"/></linearGradient></defs><line class="gl" x1="0" x2="100" y1="25" y2="25"/><line class="gl" x1="0" x2="100" y1="50" y2="50"/><line class="gl" x1="0" x2="100" y1="75" y2="75"/><line class="tg" x1="0" x2="100" y1="6" y2="6"/><path class="ar" fill="url(#ld-ga)" d=""/><path class="ln" d=""/></svg><span class="tgl">100%</span><div class="ld-head low"><span class="tag">▲ 0%</span><span class="dot"></span></div></div><div class="ld-meta"><span></span><span></span></div><div class="ld-list"></div><div class="ld-foot"></div></div></div>
+      <div class="splash-ticker" aria-hidden="true">
+        <div class="splash-tk-track"></div>
+      </div>
+    </section>
+
+    
+    <section id="scr-nick" class="screen hidden">
+      <!-- Фон приветствия: мягкое свечение, биржевая сетка и искорки. Только
+           у #scr-nick — экран загрузки остаётся как был. -->
+      <div class="nick-aurora" aria-hidden="true"></div>
+      <div class="nick-grid" aria-hidden="true"></div>
+      <div class="splash-bg" aria-hidden="true"></div>
+      <div class="center splash-wrap">
+        <div class="logo-coin">
+          <img src="img/logo-small.png?v=139" alt="" class="logo-img">
+        </div>
+        <div class="logo-name"><b>Trade</b>Up</div>
+        <h1 data-i18n="nick_title"></h1>
+        <p class="muted" data-i18n="nick_sub"></p>
+        <div class="nick-row">
+          <input spellcheck="false" autocorrect="off" autocapitalize="off" id="nick-input" data-i18n-aria="nick_ph" type="text" maxlength="16" autocomplete="off" data-i18n-ph="nick_ph">
+          <button type="button" id="btn-nick-dice" class="nick-dice" data-i18n-aria="nick_random"><span class="dice-ico" aria-hidden="true">🎲</span></button>
+        </div>
+        <!-- Подсказка о правилах и счётчик символов. Подсказка по умолчанию
+             нейтральная, при ошибке краснеет; счётчик у предела — золотой. -->
+        <div class="nick-meta">
+          <span class="nick-hint" id="nick-hint"></span>
+          <span class="nick-count" id="nick-count"></span>
+        </div>
+        <button type="button" id="btn-nick-start" class="btn primary big" data-nick-save data-i18n="nick_start"></button>
+        <p class="disclaimer" data-i18n="disclaimer"></p>
+      </div>
+      <div class="splash-ticker" aria-hidden="true">
+        <div class="splash-tk-track"></div>
+      </div>
+    </section>
+
+    
+    <div id="app-main" class="hidden">
+      <header class="topbar">
+        <img src="img/logo-small.png?v=139" alt="" class="hdr-logo-img">
+        <span id="hdr-title"></span>
+        <button type="button" id="btn-alerts" class="icon-btn hdr-alerts" data-i18n-aria="a11y_al_center" aria-label="Alerts">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+          <span class="al-hb" aria-hidden="true"></span>
+        </button>
+        <button type="button" id="btn-settings" class="icon-btn" data-i18n-aria="a11y_settings" aria-label="Settings">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </header>
+
+      <main id="pages">
+        
+        <section id="tab-lobby" class="tab-page hidden">
+          <!-- v3: вкладка «Меню» по concept/lobby.html (динамика — js/v3-lobby.js). -->
+          <section class="card lb-bal-card" id="lb-bal-card">
+            <button type="button" class="lb-bal" id="lb-bal" data-i18n-aria="lb_open_hist">
+              <span class="lb-bal-top">
+                <i class="lb-live" aria-hidden="true"></i><span class="v3-kicker" data-i18n="capital"></span>
+                <span class="lb-hist-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg><span data-i18n="lb_history"></span><i class="lb-nb mono" id="lb-hist-nb">0</i><span class="chev" aria-hidden="true">›</span></span>
+              </span>
+              <span id="lobby-capital" class="lb-bal-num mono">—</span>
+              <span class="lb-bal-sub">
+                <span class="lb-chg" id="lb-chg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span class="mono" id="lb-chg-t">—</span></span>
+                <span class="lb-per" data-i18n="lb_per_day"></span>
+                <svg class="lb-spark" id="lb-spark" viewBox="0 0 150 40" aria-hidden="true">
+                  <defs><linearGradient id="lb-spark-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e9b640" stop-opacity=".3"/><stop offset="1" stop-color="#e9b640" stop-opacity="0"/></linearGradient></defs>
+                  <path class="f" fill="url(#lb-spark-g)"/><path class="l"/><circle class="ping" r="5" cx="-20" cy="-20"/><circle class="dot" r="3.2" cx="-20" cy="-20"/>
+                </svg>
+              </span>
+              <span class="lb-split">
+                <span class="lb-split-bar" aria-hidden="true"><i class="c" id="lb-sb-c"></i><i class="s" id="lb-sb-s"></i><i class="f" id="lb-sb-f"></i></span>
+                <span class="lb-split-leg">
+                  <span><em style="--dc: var(--gold)" data-i18n="free"></em><b id="lobby-free" class="mono">—</b></span>
+                  <span><em style="--dc: var(--blue)" data-i18n="lb_in_pos"></em><b id="lobby-invested" class="mono">—</b></span>
+                  <span><em style="--dc: var(--violet)" data-i18n="lb_futures"></em><b id="lobby-fut" class="mono">—</b></span>
+                </span>
+              </span>
+            </button>
+            <div class="lb-bal-actions">
+              <button type="button" id="btn-trade" class="lb-btn lb-gold lb-trade">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 17l6-6 4 4 8-8"/><path d="M14 7h7v7"/></svg>
+                <span data-i18n="trade_now"></span>
+              </button>
+              <button type="button" id="lb-hist-btn" class="lb-btn lb-ghost lb-sq" data-i18n-aria="lb_hist_title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg></button>
+            </div>
+          </section>
+
+          <div id="card-grant" class="card lb-grant hidden">
+            <span data-i18n="grant_title"></span>
+            <button type="button" id="grant-btn" class="lb-btn lb-gold">—</button>
+          </div>
+
+          <section class="card lb-daily" id="lb-daily">
+            <!-- Фон карточки: два подарка за шапкой, свечение и искры (concept/daily.html). -->
+            <div class="lb-dl-bg" aria-hidden="true">
+              <img class="ga" src="img/daily-gift-light.png?v=1" alt="" draggable="false">
+              <img class="gb" src="img/daily-gift-dark.png?v=1" alt="" draggable="false">
+              <i style="right:38px;top:18px;--t:0"></i><i style="right:120px;top:52px;--t:900"></i>
+              <i style="right:76px;top:86px;--t:1700"></i><i style="right:180px;top:20px;--t:2400"></i>
+            </div>
+            <div class="lb-daily-top">
+              <span class="lb-gift idle" id="lb-gift"><span class="lb-gift-rays" aria-hidden="true"></span><img id="ac-gift-img" alt="" draggable="false"></span>
+              <div class="lb-daily-t">
+                <b data-i18n="daily_title"></b>
+                <span id="daily-streak"></span>
+              </div>
+              <div class="lb-daily-amt" id="lb-daily-amt"></div>
+            </div>
+            <div class="lb-dl-prog" id="lb-dl-prog"></div>
+            <div class="lb-week" id="lb-week" data-i18n-aria="lb_week_aria"></div>
+            <div class="lb-daily-cta" id="daily-box"></div>
+          </section>
+
+          <div class="lb-duo">
+            <section class="card lb-bcard" id="lb-ad-card">
+              <h3 data-i18n="ad_title"></h3>
+              <span class="lb-sub" id="lb-ad-sub"></span>
+              <span class="lb-adv idle" id="lb-adv">
+                <svg class="lb-ring" viewBox="0 0 96 96" aria-hidden="true"><circle class="bg" cx="48" cy="48" r="44"/><circle class="fg" id="lb-ad-ring" cx="48" cy="48" r="44" pathLength="100"/></svg>
+                <img id="ac-play-img" alt="" draggable="false">
+              </span>
+              <div class="lb-foot">
+                <span class="lb-amt mono" id="lb-ad-amt"></span>
+                <button type="button" id="ad-btn" class="lb-btn lb-gold"></button>
+              </div>
+            </section>
+            <section class="card lb-bcard" id="lb-spin-card">
+              <h3 data-i18n="spin_title"></h3>
+              <span class="lb-spin-mode" id="lb-spin-mode"></span>
+              <span class="lb-wheel-wrap" id="lb-wheel-wrap">
+                <svg class="lb-ring" viewBox="0 0 96 96" aria-hidden="true"><circle class="bg" cx="48" cy="48" r="46"/><circle class="fg" id="lb-spin-ring" cx="48" cy="48" r="46" pathLength="100"/></svg>
+                <svg class="lb-wheel" id="lb-wheel" viewBox="0 0 120 120" aria-hidden="true"></svg>
+              </span>
+              <div class="lb-foot">
+                <button type="button" id="spin-btn" class="lb-btn lb-gold"></button>
+              </div>
+            </section>
+          </div>
+
+          <button type="button" class="card lb-goal" id="lb-goal" data-i18n-aria="class_title"></button>
+
+          <section class="card lb-mkt" id="lb-mkt">
+            <div class="lb-mkt-head"><i class="v3-live" aria-hidden="true"></i><h2 data-i18n="lb_market_now"></h2></div>
+            <div class="lb-tape"><div class="lb-tape-in" id="lb-tape"></div></div>
+            <button type="button" class="lb-news" id="news-row" data-dir="calm" data-i18n-aria="news_title">
+              <span class="lb-ni news-ico" aria-hidden="true"><svg viewBox="0 0 48 48" aria-hidden="true"><path d="M27 5L11 28h11l-2 15 16-23H25z" fill="currentColor"/></svg></span>
+              <span class="lb-nw" id="lobby-news"></span>
+              <span class="lb-nt mono" id="lobby-news-time"></span>
+              <span class="lb-np" aria-hidden="true"><u id="lb-news-p"></u></span>
+            </button>
+          </section>
+
+          <div class="lb-end" data-i18n="lb_virtual"></div>
+        </section>
+
+        
+        <section id="tab-market" class="tab-page hidden">
+          <!-- v3: «Пульс рынка» — общий для спота и фьючерсов (js/v3-market.js). -->
+          <section class="card mkp" id="mkp" data-i18n-aria="v3m_pulse">
+            <svg width="0" height="0" class="mkp-defs" aria-hidden="true" focusable="false">
+              <defs>
+                <linearGradient id="mkp-fg-grad" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#f0524f"/><stop offset=".42" stop-color="#f5a524"/><stop offset=".6" stop-color="#e9c440"/><stop offset="1" stop-color="#2fbe6e"/></linearGradient>
+                <linearGradient id="mkp-ga" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="s1"/><stop offset="1" class="s0"/></linearGradient>
+              </defs>
+            </svg>
+            <div class="mkp-top">
+              <span class="v3-kicker mkp-kick"><i class="v3-live" aria-hidden="true"></i><span data-i18n="v3m_cap"></span></span>
+              <span class="mkp-upd mono" id="mkp-upd"></span>
+            </div>
+            <div class="mkp-mid">
+              <div class="mkp-main">
+                <div class="mkp-cap-row"><b class="mkp-cap mono" id="mkp-cap">—</b><span class="mkp-unit" id="mkp-unit"></span></div>
+                <div class="mkp-sub">
+                  <span class="mkp-pill" id="mkp-pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span class="mono" id="mkp-pct">—</span></span>
+                  <span data-i18n="v3m_24h"></span>
+                </div>
+              </div>
+              <div class="mkp-fg" id="mkp-fg" role="img">
+                <svg viewBox="0 0 100 58" aria-hidden="true">
+                  <path class="mkp-fg-t" d="M10 50 A40 40 0 0 1 90 50"/>
+                  <path class="mkp-fg-a" id="mkp-fg-arc" d="M10 50 A40 40 0 0 1 90 50" pathLength="100"/>
+                  <g class="mkp-fg-n" id="mkp-fg-needle"><line x1="50" y1="50" x2="50" y2="20"/><circle cx="50" cy="50" r="5"/></g>
+                </svg>
+                <b class="mono" id="mkp-fg-v">0</b>
+                <i id="mkp-fg-l">—</i>
+              </div>
+            </div>
+            <div class="mkp-chart" id="mkp-chart" aria-hidden="true">
+              <svg id="mkp-svg" viewBox="0 0 360 62">
+                <defs><clipPath id="mkp-clip"><rect id="mkp-clip-r" x="-4" y="-10" width="0" height="90"/></clipPath></defs>
+                <g clip-path="url(#mkp-clip)"><path id="mkp-area"/><path id="mkp-line"/></g>
+                <circle id="mkp-ring" r="4"/><circle id="mkp-dot" r="4"/>
+              </svg>
+            </div>
+            <div class="mkp-breadth">
+              <span class="up"><b class="mono" id="mkp-up">0</b> <span data-i18n="v3m_rising"></span></span>
+              <div class="mkp-bar" aria-hidden="true"><i class="u" id="mkp-bu"></i><i class="d" id="mkp-bd"></i></div>
+              <span class="down"><b class="mono" id="mkp-dn">0</b> <span data-i18n="v3m_falling"></span></span>
+            </div>
+          </section>
+          <!-- Ближайшие ценовые уведомления (js/v3-alerts.js). -->
+          <section class="card al-near mk-spot-only hidden" id="al-near"></section>
+          <!-- Поиск прилипает к верху вместе с лентой категорий. -->
+          <div class="mk-tools mk-spot-only" id="mk-tools">
+            <div class="search-card card">
+              <svg class="mk-mag" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+              <input spellcheck="false" autocorrect="off" autocapitalize="off" id="market-search" data-i18n-aria="search_ph" type="search" enterkeyhint="search" autocomplete="off" data-i18n-ph="search_ph">
+              <span class="mk-ph" id="mk-ph" aria-hidden="true"></span>
+              <button type="button" id="search-clear" class="search-clear hidden" data-i18n-aria="a11y_clear" aria-label="Clear">✕</button>
+              <button type="button" id="market-sort" class="sort-btn" data-i18n-aria="sort_aria">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <path d="M4 7h16M4 12h16M4 17h16" opacity=".45"/>
+                  <circle class="k1" cx="15" cy="7" r="2.4" fill="currentColor"/><circle class="k2" cx="9" cy="12" r="2.4" fill="currentColor"/><circle class="k3" cx="17" cy="17" r="2.4" fill="currentColor"/>
+                </svg>
+              </button>
+            </div>
+            <div class="mk-chips" id="mk-chips" role="tablist" data-i18n-aria="v3m_cats"><i class="mk-cind" aria-hidden="true"></i></div>
+          </div>
+          <div class="mk-lhead mk-spot-only" id="mk-lhead">
+            <span class="mk-lh-n" id="mk-lh-n"></span>
+            <button type="button" class="mk-lh-sort" id="mk-lh-sort" data-i18n-aria="sort_aria">
+              <span class="mk-lh-ico" id="mk-lh-ico"></span><span class="mk-lh-s" id="mk-lh-s"></span>
+              <svg class="mk-lh-arr" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6"/></svg>
+            </button>
+          </div>
+          <div id="market-list" class="list"></div>
+        </section>
+
+        
+        <section id="tab-portfolio" class="tab-page hidden">
+          <!-- v3: карточка капитала по concept/portfolio.html — табло-одометр,
+               чип изменения, SVG-график со скрабом, периоды кнопками и
+               панели «Капитал / Позиции». -->
+          <div class="card pf-hero v3pf-hero" id="pf-hero">
+            <div class="v3pf-top">
+              <span class="v3pf-kicker"><i class="v3-live" aria-hidden="true"></i><span class="v3pf-labels" id="pf-kicker"><em data-m="capital" class="on" data-i18n="v3pf_k_cap">Общий капитал</em><em data-m="positions" data-i18n="v3pf_k_pos">В позициях</em></span></span>
+              <div class="v3pf-seg v3pf-mode" id="pf-seg" role="tablist">
+                <i class="v3pf-ind" aria-hidden="true"></i>
+                <button type="button" class="seg-btn active" data-pf="capital" role="tab" aria-selected="true" data-i18n="pf_tab_capital">Капитал</button>
+                <button type="button" class="seg-btn" data-pf="positions" role="tab" aria-selected="false" data-i18n="pf_tab_positions">Позиции</button>
+              </div>
+            </div>
+            <div id="pf-total" class="v3pf-total mono">—</div>
+            <div class="v3pf-sub">
+              <span class="v3pf-pill" id="pf-pnl"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span class="mono" id="pf-pnl-txt">—</span></span>
+              <span class="v3pf-per" id="pf-per"></span>
+            </div>
+            <div class="v3pf-chart" id="pf-chart" role="img" data-i18n-aria="a11y_pf_chart">
+              <svg id="pf-chart-svg" aria-hidden="true">
+                <defs>
+                  <linearGradient id="pfc-fill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" style="stop-color:var(--pfcc);stop-opacity:.34"/>
+                    <stop offset="1" style="stop-color:var(--pfcc);stop-opacity:0"/>
+                  </linearGradient>
+                  <clipPath id="pfc-clip"><rect id="pfc-rect" x="-10" y="-20" width="0" height="220"/></clipPath>
+                </defs>
+                <g class="pfc-grid" id="pfc-grid"></g>
+                <line class="pfc-base" id="pfc-base"/>
+                <g clip-path="url(#pfc-clip)">
+                  <path id="pfc-area" fill="url(#pfc-fill)"/>
+                  <path id="pfc-line"/>
+                </g>
+                <line id="pfc-cross"/>
+                <circle id="pfc-pulse" r="7"/>
+                <circle id="pfc-dot" r="4.5"/>
+              </svg>
+              <span class="pfc-base-lbl mono" id="pfc-base-lbl"></span>
+              <div class="pfc-tip mono" id="pfc-tip"><b id="pfc-tip-v"></b><span id="pfc-tip-t"></span></div>
+            </div>
+            <div class="v3pf-seg v3pf-periods" id="pf-periods" role="tablist">
+              <i class="v3pf-ind" aria-hidden="true"></i>
+              <button type="button" data-r="30M" role="tab" data-i18n="v3pf_r_30M">30м</button>
+              <button type="button" data-r="1H" role="tab" data-i18n="v3pf_r_1H">1ч</button>
+              <button type="button" data-r="3H" role="tab" data-i18n="v3pf_r_3H">3ч</button>
+              <button type="button" data-r="10H" role="tab" data-i18n="v3pf_r_10H">10ч</button>
+              <button type="button" data-r="ALL" role="tab" data-i18n="v3pf_r_ALL">Всё</button>
+            </div>
+            <div class="v3pf-stats" id="pf-stats">
+              <div class="v3pf-panel" id="pf-stats-capital">
+                <div class="v3pf-comp" id="pf-comp" aria-hidden="true"><i data-k="cash" style="--c:var(--muted)"></i><i data-k="spot" style="--c:var(--gold)"></i><i data-k="fut" style="--c:var(--blue)"></i></div>
+                <div class="v3pf-tiles">
+                  <div class="v3pf-tile" style="--c:var(--muted)"><span><i class="dot"></i><span data-i18n="v3pf_free">Свободно</span></span><b id="pf-cash" class="mono">—</b><em id="pf-cash-p" class="mono">—</em></div>
+                  <div class="v3pf-tile" style="--c:var(--gold)"><span><i class="dot"></i><span data-i18n="v3pf_spot">Спот</span></span><b id="pf-positions" class="mono">—</b><em id="pf-positions-p" class="mono">—</em></div>
+                  <div class="v3pf-tile" style="--c:var(--blue)"><span><i class="dot"></i><span data-i18n="v3pf_fut">Фьючерсы</span></span><b id="pf-futv" class="mono">—</b><em id="pf-futv-p" class="mono">—</em></div>
+                </div>
+              </div>
+              <div class="v3pf-panel off" id="pf-stats-positions">
+                <div class="v3pf-tiles">
+                  <div class="v3pf-tile" style="--c:var(--gold)"><span><i class="dot"></i><span data-i18n="pf_assets">Активы</span></span><b id="pf-assets" class="mono">0</b><em data-i18n="v3pf_in_pf">в портфеле</em></div>
+                  <div class="v3pf-tile" id="pf-profit-tile" style="--c:var(--up)"><span><i class="dot"></i><span data-i18n="v3pf_profit">Прибыль</span></span><b id="pf-profit" class="mono">—</b><em id="pf-profit-pct" class="mono">—</em></div>
+                  <div class="v3pf-tile" id="pf-best-tile" style="--c:var(--gold)"><span><i class="dot"></i><span data-i18n="v3pf_record">Рекорд</span></span><b id="pf-best" class="mono">—</b><em data-i18n="v3pf_of_cap">капитала</em></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card v3pf-card" id="pf-assets-card">
+            <div class="v3pf-head"><h2 data-i18n="pf_your_assets">Ваши активы</h2><span class="v3pf-badge mono" id="pf-n">0</span></div>
+            <div class="v3pf-seg v3pf-chips" id="pf-sort" role="tablist">
+              <i class="v3pf-ind" aria-hidden="true"></i>
+              <button type="button" class="on" data-sort="value" role="tab" data-i18n="v3pf_s_value">Стоимость</button>
+              <button type="button" data-sort="pnl" role="tab" data-i18n="v3pf_s_pnl">Прибыль</button>
+              <button type="button" data-sort="chg" role="tab" data-i18n="v3pf_s_chg">За 24 часа</button>
+            </div>
+            <div id="pf-list" class="v3pf-assets"></div>
+            <button type="button" class="v3pf-more hidden" id="pf-all-btn"><span id="pf-more-txt"></span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+          </div>
+
+          <div class="card v3pf-card" id="pf-alloc-card">
+            <div class="v3pf-head"><h2 data-i18n="v3pf_alloc">Распределение</h2><span class="v3pf-hint" data-i18n="v3pf_tap_seg">нажмите на сектор</span></div>
+            <div class="alloc-wrap">
+              <div class="donut-wrap">
+                <canvas role="img" data-i18n-aria="a11y_donut" id="alloc-donut"></canvas>
+                <div class="donut-center" id="donut-center"><b class="dc-val mono">—</b><span class="muted small" data-i18n="pf_total_short"></span></div>
+              </div>
+              <div id="alloc-legend" class="alloc-legend"></div>
+            </div>
+            <div class="alloc-detail hidden" id="alloc-detail"></div>
+          </div>
+
+          <div class="v3pf-leaders hidden" id="pf-top-card">
+            <div class="card v3pf-lead best" id="pf-lead-best">
+              <img class="v3pf-laurel" src="img/best.png?v=139" alt="" draggable="false">
+              <div class="v3pf-lead-in">
+                <div class="v3pf-lead-k"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M2 15L3.5 6 7 10l3-6 3 6 3.5-4L18 15z" fill="currentColor"/><rect x="2" y="15.6" width="16" height="2" rx=".6" fill="currentColor"/></svg><span data-i18n="v3pf_leader">Лидер</span></div>
+                <div class="v3pf-lead-b"><img id="pf-top-img" alt="" draggable="false"><div><b id="pf-top-name">—</b><span class="mono" id="pf-top-qty"></span></div></div>
+                <div class="v3pf-lead-pct mono" id="pf-top-pct">—</div>
+                <div class="v3pf-lead-sub mono" id="pf-top-pnl">—</div>
+              </div>
+            </div>
+            <div class="card v3pf-lead worst" id="pf-lead-worst">
+              <div class="v3pf-lead-in">
+                <div class="v3pf-lead-k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7l6 6 4-4 6 7"/><path d="M15 16h5v-5"/></svg><span data-i18n="v3pf_outsider">Аутсайдер</span></div>
+                <div class="v3pf-lead-b"><img id="pf-low-img" alt="" draggable="false"><div><b id="pf-low-name">—</b><span class="mono" id="pf-low-qty"></span></div></div>
+                <div class="v3pf-lead-pct mono" id="pf-low-pct">—</div>
+                <div class="v3pf-lead-sub mono" id="pf-low-pnl">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card v3pf-card hidden" id="pf-ops-card">
+            <div class="v3pf-head"><h2 data-i18n="v3pf_ops">Последние операции</h2></div>
+            <div class="v3pf-acts" id="pf-ops"></div>
+          </div>
+        </section>
+
+        
+        <section id="tab-rating" class="tab-page hidden">
+          <!-- v3 (concept/rating.html). Разметку доски строит RatingV3 (js/v3-rating.js),
+               данные — renderRating() в main.js. -->
+          <div class="rt-ptr" id="rt-ptr" aria-hidden="true"><i><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg></i><span id="rt-ptr-t"></span></div>
+
+          <!-- Ваше место: номер, сдвиг с прошлого визита, соседи и ближайшие цели. -->
+          <section class="card rt-me" id="rt-me" role="button" tabindex="0" data-i18n-aria="rt_me_aria" aria-label="Ваше место"></section>
+
+          <!-- Гость: зачем входить. #btn-auth слушает signIn (main.js). -->
+          <section class="card rt-guest hidden" id="rt-guest">
+            <div class="rt-q"><img id="rt-guest-av" src="" alt="" draggable="false"><span>?</span></div>
+            <h2 data-i18n="rt_guest_h">Займите место в рейтинге</h2>
+            <p id="rt-guest-p"></p>
+            <ul>
+              <li><i><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 8h18v9a9 9 0 0 1-18 0z"/><path d="M15 12h-5a5 5 0 0 0 5 7M33 12h5a5 5 0 0 1-5 7M24 26v6M17 40h14M19 34h10l1 6H18z"/></svg></i><span data-i18n="rt_guest_b1">Место среди всех трейдеров TradeUp</span></li>
+              <li><i><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 36h21a8 8 0 0 0 0-16 11 11 0 0 0-21 2 7 7 0 0 0 0 14z"/></svg></i><span data-i18n="rt_guest_b2">Прогресс сохранится в облаке</span></li>
+              <li><i><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="17" r="7"/><path d="M5 40c1-7 6-11 13-11s12 4 13 11"/><circle cx="34" cy="15" r="5"/><path d="M33 26c6 0 10 4 11 10"/></svg></i><span data-i18n="rt_guest_b3">Сравнение с соседями и цели по местам</span></li>
+            </ul>
+            <button type="button" id="btn-auth" class="rt-ya"><span class="ym" aria-hidden="true">Я</span><span data-i18n="rating_login">Войти через Яндекс</span></button>
+          </section>
+
+          <div class="rt-ctrl">
+            <div class="v3-seg rt-seg" id="rating-filters" role="tablist">
+              <i aria-hidden="true"></i>
+              <button type="button" class="on" data-filter="capital" role="tab" aria-selected="true" data-i18n="rating_filter_capital">Капитал</button>
+              <button type="button" data-filter="winrate" role="tab" aria-selected="false" data-i18n="rating_filter_winrate">% успешных</button>
+            </div>
+            <button type="button" class="rt-refresh" id="rt-refresh" data-i18n-aria="rt_refresh" aria-label="Обновить рейтинг"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg><span id="rt-upd"></span></button>
+          </div>
+
+          <section class="card rt-podium" id="rt-podium"></section>
+
+          <section class="card rt-board" id="rating-board">
+            <div class="rt-lhead">
+              <span class="c" data-i18n="rating_rank_short">№</span>
+              <span data-i18n="rating_player">Трейдер</span>
+              <span class="r"><span class="lbl" id="hh-cap-label" data-i18n="rating_capital">Капитал</span><button type="button" id="hh-cap-info" data-i18n-aria="rating_capital_hint" aria-label="Что такое капитал">i</button></span>
+            </div>
+            <div class="rt-rows" id="rating-list"></div>
+            <div class="rt-foot"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span><span id="rt-foot-t"></span> <button type="button" data-rt-act="info" data-i18n="rt_how">Как считается рейтинг</button></span></div>
+          </section>
+
+          <p class="rt-end" data-i18n="rt_end">Все деньги в игре виртуальные · TradeUp</p>
+
+          <!-- Плашка «Вы»: видна, когда своей строки на экране нет. -->
+          <button type="button" class="rt-dock" id="rt-dock" data-rt-act="to-me" tabindex="-1" data-i18n-aria="rt_dock_aria" aria-label="Показать мою строку"></button>
+        </section>
+
+        
+        <section id="tab-profile" class="tab-page hidden">
+          <!-- Герой: надетые рамка, титул и ранг; подсветка героя берёт цвет
+               рамки (--fc). Разметку заполняет js/v3-profile.js. -->
+          <div class="card v3p-hero" id="v3p-hero">
+            <div class="v3p-hero-bg" aria-hidden="true">
+              <svg class="v3p-wm" viewBox="0 0 190 86" focusable="false">
+                <rect x="8" y="56" width="7" height="26" rx="2"/><rect x="30" y="46" width="7" height="36" rx="2"/><rect x="52" y="58" width="7" height="24" rx="2"/>
+                <rect x="74" y="36" width="7" height="46" rx="2"/><rect x="96" y="44" width="7" height="38" rx="2"/><rect x="118" y="26" width="7" height="56" rx="2"/>
+                <rect x="140" y="34" width="7" height="48" rx="2"/><rect x="162" y="12" width="7" height="70" rx="2"/>
+                <path d="M11 50 L33 40 L55 52 L77 30 L99 38 L121 20 L143 28 L165 6"/>
+              </svg>
+            </div>
+            <div class="v3p-hero-row">
+              <div class="v3p-ava-wrap" id="v3p-ava-wrap">
+                <button type="button" id="pr-avatar" class="avatar avatar-pick profile-ava" data-i18n-aria="change_avatar"></button>
+                <svg class="v3p-ava-draw" viewBox="0 0 36 36" aria-hidden="true" focusable="false"><circle cx="18" cy="18" r="16.5" pathLength="100"/></svg>
+                <span class="v3p-ava-edit" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></span>
+              </div>
+              <div class="v3p-id">
+                <div class="v3p-name">
+                  <b id="pr-name">—</b>
+                  <button type="button" id="btn-editname" class="v3p-ib-edit" data-i18n-aria="edit_name"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h4L20 8a2.8 2.8 0 0 0-4-4L4 16v4z"/><path d="M14.5 5.5l4 4"/></svg></button>
+                </div>
+                <span class="v3p-title-pill empty" id="pr-title"></span>
+                <div class="v3p-meta">
+                  <span class="v3p-hchip" id="v3p-rank"></span>
+                  <span class="v3p-hchip" id="v3p-days"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span></span></span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Класс: лестница из шести эмблем, живой капитал, бонус за следующий. -->
+          <section class="card v3p-klass" id="pr-class-card"></section>
+
+          <!-- Статистика 2×2 + подробная статистика (перк ранга «Аналитик»). -->
+          <div class="v3p-stats" id="v3p-stats">
+            <button type="button" class="card v3p-stat" data-pr-go="ach">
+              <span class="v3p-stat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M3 12h18"/></svg></span>
+              <span class="v3p-deco" aria-hidden="true"><i data-h="34"></i><i data-h="58"></i><i data-h="44"></i><i data-h="78"></i><i data-h="62"></i><i data-h="90"></i></span>
+              <b id="st-trades" class="mono v3p-stat-val">0</b>
+              <span class="v3p-stat-lbl" data-i18n="st_trades"></span>
+              <span class="v3p-stat-sub" id="st-trades-sub"></span>
+            </button>
+            <button type="button" class="card v3p-stat green" data-pr-go="ach">
+              <span class="v3p-stat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="13" r="7.5"/><circle cx="11" cy="13" r="4"/><path d="M14.5 9.5L20 4M17 4h3v3"/></svg></span>
+              <svg class="v3p-gauge" viewBox="0 0 36 36" aria-hidden="true"><circle class="g-bg" cx="18" cy="18" r="15"/><circle class="g-fg" id="v3p-gauge" cx="18" cy="18" r="15" pathLength="100"/></svg>
+              <b id="st-win" class="mono v3p-stat-val">—</b>
+              <span class="v3p-stat-lbl" data-i18n="st_win"></span>
+              <span class="v3p-stat-sub" id="st-win-sub"></span>
+            </button>
+            <button type="button" class="card v3p-stat green" id="pr-stat-pnl" data-pr-go="portfolio">
+              <span class="v3p-stat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></svg></span>
+              <svg class="v3p-spark" viewBox="0 0 64 28" aria-hidden="true"><path class="f" id="v3p-spark-f"/><path class="l" id="v3p-spark-l" pathLength="120"/></svg>
+              <b id="st-pnl" class="mono v3p-stat-val">—</b>
+              <span class="v3p-stat-lbl" data-i18n="st_pnl"></span>
+              <span class="v3p-stat-sub" id="st-pnl-sub"></span>
+            </button>
+            <button type="button" class="card v3p-stat gold" data-pr-go="rating">
+              <span class="v3p-stat-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><rect x="6" y="12" width="2.6" height="6" rx="0.8"/><rect x="10.7" y="8" width="2.6" height="10" rx="0.8"/><rect x="15.4" y="4.5" width="2.6" height="13.5" rx="0.8"/></svg></span>
+              <b id="st-best" class="mono v3p-stat-val">—</b>
+              <span class="v3p-stat-lbl" data-i18n="st_best"></span>
+              <span class="v3p-stat-sub" id="st-best-sub"></span>
+              <span class="v3p-rec" aria-hidden="true"><u id="v3p-rec"></u></span>
+            </button>
+            <div class="v3p-more" id="pf-ext"></div>
+          </div>
+
+          <!-- Достижения: кольцо коллекции, очки → ранг и комиссия, «Почти готово». -->
+          <section class="card v3p-achc hidden" id="v3p-achc">
+            <button type="button" class="v3p-achc-head" id="ach-row" data-i18n-aria="ach_open">
+              <span class="v3p-hico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4h10v5a5 5 0 0 1-10 0V4z"/><path d="M7 6H4.5a2.5 2.5 0 0 0 2.5 4M17 6h2.5a2.5 2.5 0 0 1-2.5 4M12 14v3M9 20h6M10 17h4l1 3H9z"/></svg></span>
+              <h2 data-i18n="ach_title"></h2>
+              <span class="v3p-cnt" id="v3p-a-cnt"></span>
+              <span class="ach-dot hidden" id="ach-dot" aria-hidden="true"></span>
+              <span class="v3p-chev" aria-hidden="true">›</span>
+            </button>
+            <div class="v3p-achc-main">
+              <div class="v3p-cring" id="v3p-ring" role="img"></div>
+              <div class="v3p-achc-pts">
+                <div class="v3p-big"><b class="mono" id="v3p-pts">0</b><span id="v3p-pts-w"></span></div>
+                <div class="v3p-goal" id="v3p-goal-rank"></div>
+                <div class="v3p-goal" id="v3p-goal-fee"></div>
+              </div>
+            </div>
+            <div class="v3p-near" id="v3p-near">
+              <div class="v3p-near-h"><span class="v3-kicker" data-i18n="v3p_near"></span><button type="button" class="v3-link" id="v3p-near-all"><span data-i18n="v3p_all"></span><span class="chev" aria-hidden="true">›</span></button></div>
+              <div class="v3p-near-row" id="v3p-near-row"></div>
+            </div>
+          </section>
+
+          <!-- Витрина-примерочная: рамки на вашем аватаре, живые свечи, титул
+               в строке рейтинга, темы применяются сразу. -->
+          <section class="card v3p-vit hidden" id="v3p-vit">
+            <div class="v3p-head"><h2 data-i18n="ach_vitrine"></h2><span class="v3p-cnt" id="v3p-v-cnt"></span></div>
+            <div class="v3-seg v3p-seg" id="v3p-vseg" role="tablist" data-i18n-aria="ach_vitrine">
+              <i aria-hidden="true"></i>
+              <button type="button" role="tab" data-cat="frames" class="on"><span data-i18n="ach_vit_frames"></span><small data-cc="frames"></small></button>
+              <button type="button" role="tab" data-cat="candles"><span data-i18n="ach_vit_candles"></span><small data-cc="candles"></small></button>
+              <button type="button" role="tab" data-cat="titles"><span data-i18n="ach_vit_titles"></span><small data-cc="titles"></small></button>
+              <button type="button" role="tab" data-cat="themes"><span data-i18n="ach_vit_themes"></span><small data-cc="themes"></small></button>
+            </div>
+            <div class="v3p-vprev" id="v3p-vprev"></div>
+            <div class="v3p-vgrid frames" id="v3p-vgrid" role="list"></div>
+            <button type="button" class="v3p-vmore hidden" id="v3p-vmore"></button>
+          </section>
+        </section>
+      </main>
+
+      <nav class="tabbar">
+        <button type="button" data-tab="lobby" class="active">
+          <img class="tab-ico" src="img/tab-home.png?v=139" width="25" height="25" alt="" draggable="false">
+          <span data-i18n="tab_lobby"></span>
+        </button>
+        <button type="button" data-tab="market">
+          <img class="tab-ico" src="img/tab-market.png?v=139" width="25" height="25" alt="" draggable="false">
+          <span data-i18n="tab_market"></span>
+        </button>
+        <button type="button" data-tab="portfolio">
+          <img class="tab-ico" src="img/tab-portfolio.png?v=139" width="25" height="25" alt="" draggable="false">
+          <span data-i18n="tab_portfolio"></span>
+        </button>
+        <button type="button" data-tab="rating">
+          <img class="tab-ico" src="img/tab-rating.png?v=139" width="25" height="25" alt="" draggable="false">
+          <span data-i18n="tab_rating"></span>
+        </button>
+        <button type="button" data-tab="profile">
+          <img class="tab-ico" src="img/tab-profile.png?v=139" width="25" height="25" alt="" draggable="false">
+          <span data-i18n="tab_profile"></span>
+        </button>
+      </nav>
+    </div>
+
+    
+    <section id="scr-trade" class="screen hidden">
+      <header class="topbar">
+        <button type="button" id="tr-back" class="icon-btn" data-i18n-aria="a11y_back" aria-label="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <span class="tr-title"><b id="tr-ticker"></b><i id="tr-name" class="muted small"></i></span>
+        <button type="button" id="tr-fav" class="icon-btn" data-i18n-aria="a11y_fav" aria-label="Favorite">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+          </svg>
+        </button>
+        <button type="button" id="tr-bell" class="icon-btn" data-i18n-aria="a11y_alerts" aria-label="Alerts">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+            <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+          </svg>
+        </button>
+      </header>
+      <main id="trade-body">
+        <div class="trade-head">
+          <span class="coin big" id="tr-icon"></span>
+          <div class="th-main">
+            <div class="th-center">
+              <b id="tr-price" class="th-price mono">—</b>
+              <div class="th-change">
+                <span id="tr-chg" class="mono">—</span>
+                <span class="th-dot">•</span>
+                <span id="tr-period" class="th-period" data-i18n="chg"></span>
+              </div>
+            </div>
+            <div class="th-stats">
+              <div class="th-stat">
+                <div class="th-stat-label" data-i18n="market_cap">Рын. капитализация</div>
+                <div class="th-stat-value mono" id="tr-cap">—</div>
+              </div>
+              <div class="th-stat">
+                <div class="th-stat-label" data-i18n="volume_24h">Объём (24ч)</div>
+                <div class="th-stat-value mono" id="tr-vol">—</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card chart-card">
+          <div class="chart-top">
+            <div id="chart-ohlc" class="mono muted small"></div>
+            <div class="seg chart-type-seg" id="chart-type" role="group" data-i18n-aria="chart_type_aria" aria-label="Chart type">
+              <button type="button" data-ctype="candle" aria-pressed="true" data-i18n-aria="a11y_candles" aria-label="Candles">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="8" width="4" height="9" rx="1.2"/><path d="M6 5v3M6 17v2"/><rect x="14" y="6" width="4" height="8" rx="1.2"/><path d="M16 3v3M16 14v4"/></svg>
+              </button>
+              <button type="button" data-ctype="line" aria-pressed="false" data-i18n-aria="a11y_line" aria-label="Line">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16l4.5-5 3.5 3 8-8"/></svg>
+              </button>
+            </div>
+            <button type="button" id="chart-live" class="live-btn hidden" data-i18n="chart_live">⟳ Live</button>
+          </div>
+          <canvas role="img" data-i18n-aria="a11y_price_chart" id="chart"></canvas>
+          <div class="tf-row">
+            <button type="button" class="tf-btn" data-tf="1" data-i18n="tf_5s"></button>
+            <button type="button" class="tf-btn" data-tf="3" data-i18n="tf_15s"></button>
+            <button type="button" class="tf-btn" data-tf="12" data-i18n="tf_1m"></button>
+            <button type="button" class="tf-btn" data-tf="60" data-i18n="tf_5m"></button>
+            <button type="button" class="tf-btn" data-tf="180" data-i18n="tf_15m"></button>
+          </div>
+        </div>
+
+        
+
+        <div class="trade-actions">
+          <button type="button" id="sell-btn" class="btn down-btn"><span data-i18n="sell"></span></button>
+          <button type="button" id="buy-btn" class="btn up-btn"><span data-i18n="buy"></span></button>
+        </div>
+
+        
+        <div id="tr-fee-strip" class="tr-fee-strip hidden">
+          <span class="tfd-ico" aria-hidden="true">%</span>
+          <span id="tr-fee-strip-txt"></span>
+        </div>
+
+        <section id="tr-desk" class="card desk">
+          
+          <div class="desk-tabs-wrap">
+            <div class="desk-tabs" id="desk-tabs" role="tablist">
+              <button type="button" class="desk-tab active" data-desk="orders" role="tab" aria-selected="true">
+                <span data-i18n="desk_tab_open">Открытые ордера</span>
+                <span class="desk-badge hidden" data-badge="orders"></span>
+              </button>
+              <button type="button" class="desk-tab" data-desk="alerts" role="tab" aria-selected="false">
+                <span data-i18n="al_open">Уведомления</span>
+                <span class="desk-badge hidden" data-badge="alerts"></span>
+              </button>
+              <button type="button" class="desk-tab" data-desk="positions" role="tab" aria-selected="false">
+                <span data-i18n="desk_tab_positions">Позиции</span>
+                <span class="desk-badge hidden" data-badge="positions"></span>
+              </button>
+              <button type="button" class="desk-tab" data-desk="history" role="tab" aria-selected="false">
+                <span data-i18n="desk_tab_history">История ордеров</span>
+              </button>
+              <button type="button" class="desk-tab" data-desk="trades" role="tab" aria-selected="false">
+                <span data-i18n="desk_tab_trades">История сделок</span>
+              </button>
+            </div>
+            
+            <span class="desk-ink" id="desk-ink"></span>
+          </div>
+          <div class="desk-body">
+            <div class="desk-panel" data-panel="orders">
+              <div id="ao-list" class="ao-list"></div>
+            </div>
+            <div class="desk-panel hidden" data-panel="alerts">
+              <div id="al-list" class="ao-list"></div>
+            </div>
+            <div class="desk-panel hidden" data-panel="positions">
+              <div id="pos-list" class="ao-list"></div>
+            </div>
+            <div class="desk-panel hidden" data-panel="history">
+              <div id="oh-list" class="ao-list"></div>
+            </div>
+            <div class="desk-panel hidden" data-panel="trades">
+              <div id="tx-list" class="ao-list"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </section>
+
+    
+    <section id="scr-assets" class="screen hidden">
+      <header class="topbar">
+        <button type="button" id="all-back" class="icon-btn" data-i18n-aria="a11y_back" aria-label="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <span class="tr-title"><b data-i18n="pf_your_assets"></b><i id="all-sub" class="muted small"></i></span>
+        <span class="hdr-spacer"></span>
+      </header>
+      <main id="all-body">
+        <div id="all-list" class="list"></div>
+      </main>
+    </section>
+
+    
+    <section id="scr-news" class="screen hidden">
+      <!-- v3: разметка по concept/news.html; поведение — js/v3-news.js. -->
+      <svg class="nw-defs" width="0" height="0" aria-hidden="true" focusable="false">
+        <defs>
+          <linearGradient id="nwgUp" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-opacity=".3"/><stop offset="1" stop-opacity="0"/></linearGradient>
+          <linearGradient id="nwgDown" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-opacity=".3"/><stop offset="1" stop-opacity="0"/></linearGradient>
+        </defs>
+      </svg>
+      <header class="topbar nw-top">
+        <button type="button" id="news-back" class="icon-btn" data-i18n-aria="a11y_back" aria-label="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <span class="tr-title nw-tt"><b data-i18n="news_title"></b><i id="nw-sub"><span class="v3-live" aria-hidden="true"></span><span id="nw-sub-t" data-i18n="news_live"></span></i></span>
+        <button type="button" id="nw-readall" class="icon-btn nw-readall" data-act="readall" data-i18n-aria="nw_readall" aria-label="Mark all as read">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12.5l4 4L14 8.5"/><path d="M11 15.5l1 1 9-9"/></svg>
+          <em class="nw-badge mono" id="nw-badge"></em>
+        </button>
+        <span class="nw-prog" aria-hidden="true"><i id="nv-progress-bar"></i></span>
+      </header>
+      <main id="news-body">
+        <div class="nw-page" id="nw-page">
+          <section class="card nw-pulse nw-rv" style="--d:0" id="nv-pulse">
+            <div class="nw-pl-top">
+              <span class="nw-lchip"><i class="v3-live" aria-hidden="true"></i><span data-i18n="nv_live">LIVE</span></span>
+              <div class="nw-pl-t"><b data-i18n="nv_title"></b><i id="nw-pl-sub"></i></div>
+            </div>
+            <div class="nw-tug">
+              <div class="nw-tug-l"><span class="up">▲ <b class="mono" id="nw-tg-u">0</b> <span data-i18n="nw_up"></span></span><span class="down"><span data-i18n="nw_down"></span> <b class="mono" id="nw-tg-d">0</b> ▼</span></div>
+              <div class="nw-tug-bar" aria-hidden="true"><i class="nw-tug-u" id="nw-tg-bar"></i><i class="nw-tug-k" id="nw-tg-k"></i></div>
+              <div class="nw-tug-m" id="nw-tg-m"></div>
+            </div>
+            <div class="nw-tl-h"><span class="nw-k2" data-i18n="nw_activity"></span></div>
+            <div class="nw-tl" id="nw-tl" role="group"></div>
+            <div class="nw-tl-ax" aria-hidden="true"><span data-i18n="nw_60m"></span><span data-i18n="nw_30m"></span><span data-i18n="nw_now"></span></div>
+            <div class="nw-pl-s">
+              <div class="nw-ps"><span class="nw-k2" data-i18n="nw_events"></span><b class="mono" id="news-feed-count">0</b></div>
+              <div class="nw-ps gold"><span class="nw-k2" data-i18n="nw_strong"></span><b class="mono" id="nw-ps-s">0</b></div>
+              <div class="nw-ps hot"><span class="nw-k2" data-i18n="nw_booms"></span><b class="mono" id="nw-ps-x">0</b></div>
+            </div>
+          </section>
+
+          <section class="nw-hero nw-rv" style="--d:90" id="nw-hero">
+            <div class="nw-hero-h"><span class="v3-kicker" data-i18n="nw_top_hour"></span><div class="nw-hdots" id="nw-hdots"></div></div>
+            <div class="nw-htrack" id="nw-htrack"></div>
+          </section>
+
+          <div class="nw-tools nw-rv" style="--d:170" id="nw-tools">
+            <div class="v3-seg nw-seg" id="news-filter" role="tablist" data-i18n-aria="nw_filter" aria-label="Feed filter">
+              <i aria-hidden="true"></i>
+              <button type="button" class="on" data-nf="all" role="tab" aria-selected="true"><span data-i18n="nf_all"></span><em class="mono">0</em></button>
+              <button type="button" data-nf="mine" role="tab" aria-selected="false"><span data-i18n="nf_mine"></span><em class="mono">0</em></button>
+              <button type="button" data-nf="strong" role="tab" aria-selected="false"><span data-i18n="nf_strong"></span><em class="mono">0</em></button>
+            </div>
+            <div class="nw-chips" id="nw-chips" role="tablist" data-i18n-aria="nw_topics" aria-label="Topics"><i class="nw-cind" id="nw-cind" aria-hidden="true"></i></div>
+          </div>
+          <div class="nw-newp-wrap" id="nw-newp-wrap"><button type="button" class="nw-newp" id="nw-newp" data-act="newp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg><span class="nw-avs" id="nw-newp-avs"></span><span id="nw-newp-t"></span></button></div>
+
+          <div id="news-feed" class="nw-feed" aria-live="off"></div>
+          <div class="nw-end" id="nw-end"></div>
+        </div>
+      </main>
+      <button type="button" class="nw-brk" id="nw-brk" data-act="brk" aria-live="assertive"></button>
+      <div class="nw-edge" id="nw-edge"></div>
+    </section>
+
+    
+    <section id="scr-classes" class="screen hidden">
+      <header class="topbar">
+        <button type="button" id="cl-back" class="icon-btn" data-i18n-aria="a11y_back" aria-label="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <span class="tr-title"><b data-i18n="class_title"></b></span>
+        <span class="hdr-spacer"></span>
+      </header>
+      <main id="cl-body">
+        
+        <div class="card cl-hero" id="cl-hero">
+          <div class="cl-hero-labels">
+            <span class="muted small cl-hero-label" data-i18n="class_yours"></span>
+            <span class="muted small cl-hero-label-next" id="cl-hero-label-next" data-i18n="class_next_goal"></span>
+          </div>
+          <div class="cl-hero-row">
+            <span class="cl-hero-ico class-ico" id="cl-hero-ico" aria-hidden="true"></span>
+            <div class="cl-hero-text">
+              <div class="cl-hero-name-row">
+                <b id="cl-hero-name" class="cl-hero-name">—</b>
+                <span class="cl-hero-mini class-ico" id="cl-hero-mini" aria-hidden="true"></span>
+              </div>
+              
+              <div class="bar cl-hero-bar"><div id="cl-hero-fill" class="bar-fill"><i class="cl-hero-bar-shine"></i></div></div>
+              <span id="cl-hero-cap" class="cl-hero-cap"><span class="now mono" id="cl-hero-cap-now">—</span><span class="goal" id="cl-hero-cap-goal">—</span></span>
+              <span id="cl-hero-cta" class="cl-hero-cta">—</span>
+            </div>
+            <div class="cl-hero-goal" id="cl-hero-goal">
+              <span class="cl-hero-next class-ico" id="cl-hero-next-ico" aria-hidden="true"></span>
+              <b id="cl-hero-next-name" class="cl-hero-next-name">—</b>
+              <span class="cl-hero-pinnacle hidden" id="cl-hero-pinnacle" data-i18n="class_pinnacle"></span>
+            </div>
+          </div>
+        </div>
+        <div class="muted small cl-hint" data-i18n="class_cl_hint"></div>
+        <div id="cl-list" class="cl-list"></div>
+      </main>
+    </section>
+
+    
+    <section id="scr-spin" class="screen hidden">
+      <header class="topbar">
+        <button type="button" id="spin-back" class="icon-btn" data-i18n-aria="a11y_back" aria-label="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <span class="tr-title">
+          <b id="spin-title">—</b>
+          <i id="spin-sub" class="muted small"></i>
+        </span>
+        
+        <span id="spin-cap" class="mono spin-cap">—</span>
+      </header>
+
+      <main id="spin-body" class="spin-body">
+        
+        <div class="spin-switch" id="spin-switch" role="tablist" data-i18n-aria="a11y_spin_switch" aria-label="Режим колеса">
+          <button type="button" class="ssw" id="spin-mode-free" data-spin="free" role="tab" aria-selected="true">
+            <span class="ssw-ico" aria-hidden="true">
+              <svg viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="12.5" stroke="currentColor" stroke-width="2"/>
+                <path d="M16 3.5v25M3.5 16h25M7.4 7.4l17.2 17.2M24.6 7.4L7.4 24.6" stroke="currentColor" stroke-width="1.1" opacity=".85"/>
+                <circle cx="16" cy="16" r="3" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="ssw-copy">
+              <b data-i18n="spin_sw_free">Обычный</b>
+              <i id="spin-free-cta">—</i>
+            </span>
+            <span class="ssw-arrow" aria-hidden="true">›</span>
+          </button>
+          <button type="button" class="ssw ssw--vip" id="spin-mode-vip" data-spin="vip" role="tab" aria-selected="false">
+            <span class="ssw-ico" aria-hidden="true">
+              <svg viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="12.5" stroke="currentColor" stroke-width="2"/>
+                <path d="M16 3.5v25M3.5 16h25M7.4 7.4l17.2 17.2M24.6 7.4L7.4 24.6" stroke="currentColor" stroke-width="1.1" opacity=".85"/>
+                <circle cx="16" cy="16" r="3" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="ssw-copy">
+              <b data-i18n="spin_sw_vip">Золотой</b>
+              <i id="spin-vip-cta">—</i>
+            </span>
+            <span class="ssw-arrow" aria-hidden="true">›</span>
+          </button>
+        </div>
+
+        
+        <div class="spin-stage" id="spin-stage">
+          <div class="spin-rays" aria-hidden="true"></div>
+          
+          <div class="spin-wheel" id="spin-wheel">
+          <div class="spin-frame" aria-hidden="true"><div class="spin-bulbs" id="spin-bulbs"></div></div>
+          <svg id="spin-svg" class="spin-svg" viewBox="0 0 200 200" data-i18n-aria="a11y_spin_svg" aria-label="Lucky Spin">
+            <defs>
+              
+              <clipPath id="spinGrainClip"><circle cx="100" cy="100" r="95.5"/></clipPath>
+              <filter id="spinGrain" x="-10%" y="-10%" width="120%" height="120%">
+                <feTurbulence type="fractalNoise" baseFrequency="0.78" numOctaves="2" seed="31" result="n"/>
+                <feColorMatrix in="n" type="saturate" values="0" result="gray"/>
+                <feComponentTransfer in="gray"><feFuncA type="table" tableValues="0 0.085"/></feComponentTransfer>
+              </filter>
+              <filter id="spinTopGlow" x="-40%" y="-40%" width="180%" height="180%">
+                <feGaussianBlur stdDeviation="2.1"/>
+              </filter>
+              
+              <radialGradient id="spinRim" cx="40%" cy="34%" r="65%">
+                <stop offset="84%" stop-color="rgba(0,0,0,0)"/>
+                <stop offset="89%" stop-color="rgba(255,228,137,0.36)"/>
+                <stop offset="94%" stop-color="rgba(255,241,178,0.78)"/>
+                <stop offset="97%" stop-color="rgba(128,79,9,0.75)"/>
+                <stop offset="100%" stop-color="rgba(22,15,4,0.85)"/>
+              </radialGradient>
+              <linearGradient id="spinGoldEdge" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#fff0a8"/>
+                <stop offset=".46" stop-color="#f4c64d"/>
+                <stop offset="1" stop-color="#8c550a"/>
+              </linearGradient>
+              
+
+              
+              <radialGradient id="spinCoreGrad" cx="40%" cy="30%" r="78%">
+                <stop offset="0%"  stop-color="#ffe88a"/>
+                <stop offset="55%" stop-color="#c98e1e"/>
+                <stop offset="100%" stop-color="#5a3b08"/>
+              </radialGradient>
+              
+              <radialGradient id="spinRimFree" cx="40%" cy="34%" r="65%">
+                <stop offset="84%" stop-color="rgba(0,0,0,0)"/>
+                <stop offset="89%" stop-color="rgba(140,150,170,0.20)"/>
+                <stop offset="94%" stop-color="rgba(170,180,200,0.42)"/>
+                <stop offset="97%" stop-color="rgba(70,80,60,0.55)"/>
+                <stop offset="100%" stop-color="rgba(20,16,8,0.85)"/>
+              </radialGradient>
+              <radialGradient id="spinCoreGradFree" cx="40%" cy="30%" r="78%">
+                <stop offset="0%"  stop-color="#5b6275"/>
+                <stop offset="55%" stop-color="#3a4050"/>
+                <stop offset="100%" stop-color="#15171f"/>
+              </radialGradient>
+            </defs>
+            
+            <defs id="spin-icon-defs"></defs>
+            
+            <g id="spin-disc" transform="rotate(0 100 100)">
+              
+              <circle class="spin-grain" cx="100" cy="100" r="95.5" filter="url(#spinGrain)" clip-path="url(#spinGrainClip)"/>
+              <g id="spin-sectors"></g>
+            </g>
+            <g id="spin-win" aria-hidden="true"></g>
+            
+            
+            <circle class="spin-rim" cx="100" cy="100" r="96.5"/>
+            <circle class="spin-outer-edge" cx="100" cy="100" r="97"/>
+            <circle class="spin-inner-edge" cx="100" cy="100" r="91.4"/>
+            
+            <circle class="spin-core-ring" cx="100" cy="100" r="21.8"/>
+            <circle class="spin-core" cx="100" cy="100" r="20"/>
+            <g class="spin-core-icon" aria-hidden="true">
+              
+              <circle cx="100" cy="100" r="13.6" fill="none"
+                      stroke="currentColor" stroke-width="0.55"
+                      stroke-opacity="0.35"/>
+              
+              <path d="M 90.5 108.2 L 99.5 99.4 L 103.7 103.5 L 109.6 92.6"
+                    fill="none" stroke="currentColor" stroke-width="2.4"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M 105 92.6 L 109.6 92.6 L 109.6 97.6"
+                    fill="none" stroke="currentColor" stroke-width="2.4"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </g>
+            
+            <g id="spin-ticks" opacity="0.55"></g>
+          </svg>
+          <button type="button" class="spin-hub" id="spin-hub" data-i18n-aria="spin_cta" aria-label="Spin"></button>
+          </div>
+          
+          <span class="spin-pointer" aria-hidden="true">
+            <svg viewBox="0 0 44 56">
+              <defs>
+                <linearGradient id="spPtrBody" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" class="sp-s1"/><stop offset=".5" class="sp-s2"/><stop offset="1" class="sp-s3"/>
+                </linearGradient>
+                <radialGradient id="spPtrGem" cx="38%" cy="32%" r="70%">
+                  <stop offset="0" stop-color="#fff6c8"/><stop offset=".45" stop-color="#f1c04a"/><stop offset="1" stop-color="#8c550a"/>
+                </radialGradient>
+              </defs>
+              <path class="sp-shadow" d="M22 54 C16.5 42 5 32.5 5 20 A17 17 0 0 1 39 20 C39 32.5 27.5 42 22 54 Z"/>
+              <path class="sp-body" d="M22 52 C16.5 40 5 30.5 5 19 A17 17 0 0 1 39 19 C39 30.5 27.5 40 22 52 Z"/>
+              <path class="sp-shine" d="M11 13 A12 12 0 0 1 24 7.5"/>
+              <circle class="sp-gem" cx="22" cy="19" r="7.2"/>
+              <circle class="sp-gem-hi" cx="19.6" cy="16.4" r="2.1"/>
+            </svg>
+          </span>
+        </div>
+
+        
+        <section class="spin-action">
+          <p id="spin-action-note" class="spin-action-note" aria-live="polite">—</p>
+          <button type="button" id="spin-go" class="spin-action-btn">
+            <span class="spin-action-wheel" aria-hidden="true">
+              <svg viewBox="0 0 32 32" fill="none">
+                <circle cx="16" cy="16" r="13" stroke="currentColor" stroke-width="2"/>
+                <path d="M16 3v26M3 16h26M6.8 6.8l18.4 18.4M25.2 6.8L6.8 25.2" stroke="currentColor" stroke-width="1.3" opacity=".82"/>
+                <circle cx="16" cy="16" r="3.2" fill="currentColor"/>
+              </svg>
+            </span>
+            <span class="spin-action-copy">
+              <b id="spin-go-txt">—</b>
+              <i id="spin-go-sub">—</i>
+            </span>
+            <span class="spin-action-limit mono" id="spin-go-limit">—</span>
+          </button>
+        </section>
+      </main>
+    </section>
+
+    <section id="scr-ach" class="screen hidden">
+      <header class="topbar">
+        <button type="button" id="ach-back" class="icon-btn" data-i18n-aria="a11y_back" aria-label="Back">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </button>
+        <span class="tr-title"><b data-i18n="ach_title"></b></span>
+        <span class="v3a-pill" id="ach-pill"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round" aria-hidden="true"><path d="M24 8l4.5 9.5L39 19l-7.5 7 2 10.5-9.5-5-9.5 5 2-10.5L9 19l10.5-1.5z"/></svg><b class="mono" id="ach-pill-n">0</b></span>
+      </header>
+      <main id="ach-body">
+        <section class="card v3a-head" id="ach-head">
+          <div class="v3a-head-top">
+            <div class="v3a-cring" id="ach-ring" role="img" data-i18n-aria="a11y_ach_ring"></div>
+            <div class="v3a-head-r">
+              <span class="v3-kicker" data-i18n="v3a_rank_kicker"></span>
+              <div class="v3a-rank" id="ach-rank"></div>
+              <div class="v3a-line"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round" aria-hidden="true"><path d="M24 8l4.5 9.5L39 19l-7.5 7 2 10.5-9.5-5-9.5 5 2-10.5L9 19l10.5-1.5z"/></svg><span id="ach-pts-line"></span></div>
+              <div class="v3a-line"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" aria-hidden="true"><path d="M36 12L12 36"/><circle cx="17" cy="17" r="4"/><circle cx="31" cy="31" r="4"/></svg><span><span data-i18n="v3a_fee"></span> <b class="mono" id="ach-fee-now">1%</b></span></div>
+            </div>
+          </div>
+          <div class="v3a-road-wrap" id="ach-road-wrap"><div class="v3a-road" id="ach-road"></div></div>
+          <div class="v3a-next" id="ach-next"></div>
+        </section>
+        <div class="v3a-chips" id="ach-filters2" role="tablist" aria-label="Статус">
+          <i class="v3a-ind" aria-hidden="true"></i>
+          <button type="button" class="v3a-chip on" data-sf="all" role="tab" aria-selected="true">
+            <span data-i18n="ach_f_all"></span><i class="mono" data-cnt="all">0</i>
+          </button>
+          <button type="button" class="v3a-chip" data-sf="reward" role="tab" aria-selected="false">
+            <span data-i18n="ach_f_reward"></span><i class="mono" data-cnt="reward">0</i>
+          </button>
+          <button type="button" class="v3a-chip" data-sf="doing" role="tab" aria-selected="false">
+            <span data-i18n="ach_f_doing"></span><i class="mono" data-cnt="doing">0</i>
+          </button>
+          <button type="button" class="v3a-chip" data-sf="got" role="tab" aria-selected="false">
+            <span data-i18n="ach_f_got"></span><i class="mono" data-cnt="got">0</i>
+          </button>
+          <button type="button" class="v3a-chip" data-sf="hidden" role="tab" aria-selected="false">
+            <span data-i18n="ach_f_hidden"></span><i class="mono" data-cnt="hidden">0</i>
+          </button>
+        </div>
+        <div class="v3a-list" id="ach-list"></div>
+        <div class="v3a-end" data-i18n="v3a_end"></div>
+      </main>
+    </section>
+
+    <!-- Церемония выдачи достижения (js/v3-ach.js). Остаётся .modal: пока она
+         открыта, очередь Ach.pump стоит, Escape закрывает её штатно. -->
+    <div id="modal-ach" class="modal hidden v3a-cer" role="dialog" aria-modal="true" aria-labelledby="ach-cer-title">
+      <div class="cer-bg"></div>
+      <div class="cer-rays" aria-hidden="true"><i></i><i></i></div>
+      <div class="cer-glow" aria-hidden="true"></div>
+      <canvas class="cer-fx" id="ach-cer-fx" aria-hidden="true"></canvas>
+      <div class="cer-q" id="ach-cer-q" aria-hidden="true"></div>
+      <div class="cer-body" id="ach-cer-body"></div>
+      <div class="cer-btns" id="ach-cer-btns">
+        <button type="button" class="btn cer-ghost hidden" id="ach-cer-wear"></button>
+        <button type="button" id="ach-ok" class="btn cer-gold"></button>
+      </div>
+      <div class="cer-skip" data-i18n="v3a_skip"></div>
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+        <defs><linearGradient id="ach-cer-grad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff3c4"/><stop offset=".45" stop-color="#f0c04d"/><stop offset="1" stop-color="#c98f1b"/></linearGradient></defs>
+      </svg>
+    </div>
+
+    <!-- Выпадение приза (concept/wheel.html): монета прилетает из сектора
+         на место .wr-medal, карточка раскрывается из-под неё — js/v3-wheel.js. -->
+    <div id="modal-spin-prize" class="modal hidden wr" role="dialog" aria-modal="true" aria-labelledby="sp-title">
+      <div class="backdrop wr-bg" id="spin-prize-backdrop"></div>
+      <div class="wr-rays" aria-hidden="true"><i></i><i></i></div>
+      <div class="spin-prize wr-card" id="wr-card" aria-live="polite">
+        <button id="spin-prize-close" class="wr-x" type="button" data-i18n-aria="a11y_close" aria-label="Close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <span class="wr-medal" id="sp-medal" aria-hidden="true"><span class="wr-miss" id="sp-miss">✕</span></span>
+        <span class="wr-lbl wr-cz" id="sr-label" style="--d:0"></span>
+        <h2 class="wr-title" id="sp-title">—</h2>
+        <div class="wr-near wr-cz" id="sp-near" style="--d:380" hidden></div>
+        <div class="wr-panel wr-cz" id="sp-panel" style="--d:260">
+          <span class="wr-spark" aria-hidden="true">✦</span>
+          <b class="wr-val mono" id="sr-value">—</b>
+          <span class="wr-spark r" aria-hidden="true">✦</span>
+        </div>
+        <div class="wr-chip wr-cz" id="sp-chip" style="--d:470" hidden></div>
+        <div class="wr-info wr-cz" id="sp-info" style="--d:520">
+          <span class="wr-ico" id="sp-ico" aria-hidden="true"></span>
+          <span class="wr-it"><span id="sr-sub">—</span><b id="sp-balance" class="mono"></b></span>
+        </div>
+        <button type="button" id="spin-again" class="wr-btn gold wr-cz" style="--d:640">
+          <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+            <circle cx="16" cy="16" r="12.5"/>
+            <path d="M16 9.5v6.5l4.5 3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span data-i18n="spin_again"></span>
+        </button>
+        <button type="button" id="spin-claim" class="wr-btn dark wr-cz" style="--d:710">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M3 10.5 12 3l9 7.5"/>
+            <path d="M5.5 9.5V20h13V9.5"/>
+          </svg>
+          <span data-i18n="spin_back_lobby"></span>
+        </button>
+      </div>
+      <div class="wr-flash" aria-hidden="true"></div>
+      <div class="wr-ring" aria-hidden="true"></div>
+      <div class="wr-ring r2" aria-hidden="true"></div>
+    </div>
+
+    
+    <div id="modal-trade" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="backdrop" id="sheet-backdrop"></div>
+      <div class="sheet trade-sheet">
+        <div class="sheet-head">
+          <span class="sh-title">
+            <img id="sheet-ico" alt="" draggable="false">
+            <b id="sheet-title"></b>
+          </span>
+          <button type="button" id="sheet-close" class="icon-btn" data-i18n-aria="a11y_close" aria-label="Close">✕</button>
+        </div>
+        
+        <div class="seg sheet-seg" id="tr-mode-seg">
+          
+          <span class="seg-indicator" id="tr-seg-indicator" aria-hidden="true"></span>
+          <button type="button" data-tr-mode="market" class="active" id="tr-mode-market"></button>
+          <button type="button" data-tr-mode="limit" id="tr-mode-limit"></button>
+        </div>
+
+        
+        <div id="tr-fee-disc" class="tr-fee-disc hidden">
+          <span class="tfd-ico" aria-hidden="true">%</span>
+          <span id="tr-fee-disc-txt"></span>
+        </div>
+
+        
+        <div class="tr-io">
+          <div class="tr-io-col">
+            <span class="tr-lbl" id="tr-in-lbl" data-i18n="amount"></span>
+            <div class="tr-io-big mono"><span id="tr-in-cur" class="tr-io-cur">$</span><span id="tr-amt-value">50</span></div>
+            <span class="tr-avail" id="tr-avail">—</span>
+          </div>
+          <span class="tr-io-arrow" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                 stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>
+          </span>
+          <div class="tr-io-col tr-io-col--out">
+            <span class="tr-lbl" data-i18n="you_receive"></span>
+            <div class="tr-io-big mono tr-io-big--out" id="tr-out-value">—</div>
+            <span class="tr-avail" id="tr-out-sub">—</span>
+          </div>
+        </div>
+
+        
+
+        
+        <div id="size-fields">
+          <div class="set-label" id="tr-size-label" data-i18n="tr_use_balance">Использовать баланс</div>
+          <div class="amt-row" id="tr-amt-row">
+            <span class="amt-ico">$</span>
+            <input spellcheck="false" autocorrect="off" autocapitalize="off" id="tr-amt-input" data-i18n-aria="tr_use_balance" type="text" inputmode="decimal" autocomplete="off" value="50">
+            <button type="button" id="tr-amt-max" class="amt-max mono">Max: $0</button>
+          </div>
+          <div class="pct-chips" id="tr-pcts">
+            <button type="button" data-pct="10">10%</button>
+            <button type="button" data-pct="25">25%</button>
+            <button type="button" data-pct="50">50%</button>
+            <button type="button" data-pct="75">75%</button>
+            <button type="button" data-pct="100">100%</button>
+          </div>
+          <div class="tr-slider-wrap">
+            <span class="tr-sl-end mono">0%</span>
+            <input id="tr-slider" data-i18n-aria="tr_use_balance" class="slider" type="range" min="0" max="100" step="1" value="10">
+            <span class="tr-sl-end mono">100%</span>
+          </div>
+        </div>
+
+        
+        <div id="limit-fields" class="hidden">
+          <div class="set-label" data-i18n="limit_price">Цена ордера</div>
+          <div class="amt-row limit-price-row">
+            <span class="amt-ico">$</span>
+            <input spellcheck="false" autocorrect="off" autocapitalize="off" id="tr-limit-price" data-i18n-aria="limit_price" type="text" inputmode="decimal" autocomplete="off" placeholder="0">
+          </div>
+          <div class="muted small limit-hint">
+            <span data-i18n="limit_current">Текущая цена</span>:
+            <b id="tr-limit-current" class="mono">—</b>
+            <span class="limit-delta" id="tr-limit-delta">—</span>
+          </div>
+          
+          <div class="pct-chips pct-chips--offset" id="tr-limit-pcts"></div>
+          <button class="limit-edit-btn" id="tr-limit-edit" type="button" data-i18n-aria="a11y_edit" aria-label="Edit">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 20h9"/>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+            </svg>
+            <span data-i18n="limit_edit">Настроить</span>
+          </button>
+        </div>
+
+        <div class="tr-details">
+          <div class="tr-det-head" data-i18n="trade_details"></div>
+          
+          <div class="tr-det-row" id="tr-det-price-row">
+            <span data-i18n="price"></span>
+            <b class="mono tr-det-price" id="tr-det-price">—</b>
+          </div>
+          
+          <div class="tr-det-row hidden" id="tr-det-target-row">
+            <span data-i18n="limit_target">Лимитная цена</span>
+            <b class="mono" id="tr-det-target">—</b>
+          </div>
+          <div class="tr-det-row">
+            <span id="tr-det-amt-lbl" data-i18n="amount"></span>
+            <b class="mono" id="tr-det-amt">—</b>
+          </div>
+          
+          <div class="tr-det-row hidden" id="tr-det-commission-row">
+            
+            <span data-i18n="commission">Комиссия</span>
+            <b class="mono" id="tr-det-commission">—</b>
+          </div>
+          <div class="tr-det-row">
+            <span id="tr-det-get-lbl" data-i18n="you_receive"></span>
+            <b class="mono tr-det-get" id="tr-det-get">—</b>
+          </div>
+        </div>
+
+        <button type="button" id="sheet-confirm" class="btn big confirm-btn">
+          <span class="confirm-ico" id="confirm-ico" aria-hidden="true"></span>
+          <span id="confirm-label">—</span>
+        </button>
+        
+        <div class="sheet-hint hidden" id="tr-hint" aria-live="polite">
+          <span class="sheet-hint-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                 stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          </span>
+          <span id="tr-hint-text">—</span>
+        </div>
+        
+        <details class="sheet-info hidden" id="tr-info">
+          <summary>
+            <span class="sheet-info-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.5 9 8 10 4.5-1 8-5 8-10V6l-8-4z"/></svg>
+            </span>
+            <span class="sheet-info-title" data-i18n="limit_info_title">Как работает лимитный ордер?</span>
+            <span class="sheet-info-chev" aria-hidden="true">›</span>
+          </summary>
+          <div class="sheet-info-body" data-i18n="limit_info_body">
+            Ваш ордер будет исполнен только по указанной цене или лучше. Он
+            может ждать сколько угодно, пока цена не достигнет нужного уровня.
+          </div>
+        </details>
+      </div>
+      
+      <div class="limit-edit-popup hidden" id="tr-limit-edit-popup" role="dialog" data-i18n-aria="a11y_limit_popup" aria-label="Настроить проценты">
+        <div class="limit-edit-backdrop" id="tr-limit-edit-backdrop"></div>
+        <div class="limit-edit-card">
+          <div class="limit-edit-head">
+            <span class="limit-edit-title" data-i18n="limit_edit_title">Проценты от рынка</span>
+            <button type="button" class="limit-edit-close" id="tr-limit-edit-close" data-i18n-aria="a11y_close" aria-label="Close">✕</button>
+          </div>
+          <div class="limit-edit-list" id="tr-limit-edit-list"></div>
+          <div class="limit-edit-add">
+            <input spellcheck="false" autocorrect="off" autocapitalize="off" type="text" inputmode="decimal" id="tr-limit-edit-input" class="limit-edit-input" placeholder="±%" />
+            <button type="button" class="limit-edit-add-btn" id="tr-limit-edit-add" data-i18n="limit_edit_add">Добавить</button>
+          </div>
+          <button type="button" class="limit-edit-reset" id="tr-limit-edit-reset" data-i18n="limit_edit_reset">По умолчанию</button>
+        </div>
+      </div>
+    </div>
+
+    
+    <div id="modal-sort" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="backdrop" id="sort-backdrop"></div>
+      <div class="sheet sort-sheet">
+        <div class="sheet-head sort-head">
+          <span class="sort-head-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 7h9M4 12h13M4 17h7"/><circle cx="18.5" cy="7" r="2.1"/><circle cx="15" cy="17" r="2.1"/>
+            </svg>
+          </span>
+          <span class="sort-head-txt">
+            <h2 data-i18n="sort_title"></h2>
+            <p class="muted small" data-i18n="sort_sub"></p>
+          </span>
+          <button type="button" id="sort-close" class="icon-btn" data-i18n-aria="a11y_close" aria-label="Close">✕</button>
+        </div>
+        <div class="sort-cols">
+          <div class="sort-col sort-col--cats">
+            <div class="set-label" data-i18n="sort_cats"></div>
+            <div id="sort-cats" class="sort-cats"></div>
+          </div>
+          <div class="sort-col sort-col--by">
+            <div class="set-label" data-i18n="sort_by"></div>
+            <div id="sort-options"></div>
+            <div id="sort-dir-wrap">
+              <div class="set-label" data-i18n="order"></div>
+              <div id="sort-dir-seg"></div>
+            </div>
+          </div>
+        </div>
+        <div class="sort-foot">
+          <div class="sort-summary" id="sort-summary" aria-live="polite">
+            <span id="sum-cat"></span><span class="dot" aria-hidden="true"></span>
+            <span id="sum-sort"></span><span class="dot" aria-hidden="true"></span>
+            <b id="sum-count" class="mono"></b>
+          </div>
+          <button type="button" id="sort-apply" class="btn primary big" data-i18n="apply"></button>
+          <button type="button" id="sort-reset" class="sort-reset" data-i18n="reset_filters"></button>
+        </div>
+      </div>
+    </div>
+
+    
+    <!-- Настройки: каркас шторки; содержимое строит js/v3-settings.js,
+         стили — css/v3-settings.css (концепт concept/settings.html). -->
+    <div id="modal-settings" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="sg-title">
+      <div class="backdrop"></div>
+      <div class="sheet sg-sheet">
+        <div class="sg-grab" aria-hidden="true"></div>
+        <div id="sg-views">
+          <section class="sg-view sg-v-set">
+            <div class="sheet-head sg-head">
+              <h2 id="sg-title" data-i18n="settings"></h2>
+              <button type="button" id="btn-settings-close" class="icon-btn" data-sg="close" data-i18n-aria="a11y_close" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            </div>
+            <div class="sg-body" id="sg-set-body">
+              <div id="sg-set-dyn"></div>
+              <p class="sg-foot"><span data-i18n="disclaimer"></span><br><b>TradeUp</b> · <span id="ver"></span></p>
+            </div>
+          </section>
+          <section class="sg-view sg-v-how" aria-hidden="true">
+            <div class="sheet-head sg-head">
+              <button type="button" class="icon-btn" data-sg="back" data-i18n-aria="a11y_back" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+              <h2 data-i18n="howto"></h2>
+              <span id="sg-step-n" class="mono"></span>
+            </div>
+            <div class="sg-body" id="sg-how-body"></div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    
+    <div id="modal-avatar" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="backdrop"></div>
+      <div class="sheet ava-sheet">
+        <div class="sheet-head">
+          <h2 data-i18n="avatar_pick"></h2>
+          <span class="ava-count" id="ava-count"></span>
+        </div>
+        <!-- Превью: как аватарка смотрится рядом с ником. Показывает
+             ЧЕРНОВИК — выбранное в сетке применяется только по «Готово»,
+             поэтому подпись честно говорит, сохранено ли уже. -->
+        <div class="ava-preview">
+          <span class="avatar profile-ava" id="ava-big" aria-hidden="true"></span>
+          <div class="ava-pv-txt">
+            <b id="ava-pv-name">—</b>
+            <span class="ava-pv-sub" id="ava-pv-sub"></span>
+            <button type="button" class="btn ava-rand" id="ava-rand">
+              <span class="dice-ico" aria-hidden="true">🎲</span><span data-i18n="ava_random"></span>
+            </button>
+          </div>
+        </div>
+        <div id="avatar-grid" class="avatar-grid"></div>
+        <button type="button" id="btn-avatar-close" class="btn primary wide" data-i18n="avatar_done"></button>
+        <button type="button" id="btn-avatar-cancel" class="btn wide nick-back" data-i18n="ava_cancel"></button>
+      </div>
+    </div>
+
+    <!-- Смена имени — шторкой поверх профиля (референс avatar.html).
+         Раньше редактирование шло через полноэкранный scr-nick; он теперь
+         только для первого запуска, где ника ещё нет. -->
+    <div id="modal-name" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="backdrop"></div>
+      <div class="sheet nm-sheet">
+        <div class="sheet-head">
+          <h2 data-i18n="edit_name"></h2>
+          <button type="button" class="icon-btn" id="nm-x" data-i18n-aria="a11y_close">×</button>
+        </div>
+        <p class="nm-note muted small" data-i18n="name_note"></p>
+        <div class="nick-row">
+          <input spellcheck="false" autocorrect="off" autocapitalize="off" id="nm-input" data-i18n-aria="nick_ph" type="text" maxlength="16" autocomplete="off" data-i18n-ph="nick_ph">
+          <button type="button" id="nm-dice" class="nick-dice" data-i18n-aria="nick_random"><span class="dice-ico" aria-hidden="true">🎲</span></button>
+        </div>
+        <div class="nick-meta">
+          <span class="nick-hint" id="nm-hint"></span>
+          <span class="nick-count" id="nm-count"></span>
+        </div>
+        <button type="button" id="nm-save" class="btn primary wide" data-nick-save data-i18n="nick_save"></button>
+        <button type="button" id="nm-cancel" class="btn wide nick-back" data-i18n="ava_cancel"></button>
+      </div>
+    </div>
+
+    
+    <div id="modal-detail" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="backdrop" id="detail-backdrop"></div>
+      <div class="sheet detail-sheet">
+        <div class="sheet-head">
+          <span class="sh-title">
+            <img id="detail-ico" alt="" draggable="false">
+            <b id="detail-title">—</b>
+          </span>
+          <button type="button" id="detail-close" class="icon-btn" data-i18n-aria="a11y_close" aria-label="Close">✕</button>
+        </div>
+        
+        <div class="detail-hero" id="detail-hero">
+          <span class="detail-hero-label" id="detail-hero-label">—</span>
+          <b class="detail-hero-val mono" id="detail-hero-val">—</b>
+          <span class="detail-hero-sub" id="detail-hero-sub"></span>
+        </div>
+        
+        <div class="detail-status hidden" id="detail-status" data-status="filled">
+          <span class="detail-status-ico" id="detail-status-ico" aria-hidden="true">
+            
+          </span>
+          <div class="detail-status-main">
+            <span class="detail-status-label" data-i18n="detail_status">Статус</span>
+            <b class="detail-status-val mono" id="detail-status-val">—</b>
+          </div>
+          <div class="detail-status-kind">
+            <span class="detail-status-label" data-i18n="detail_status_order">Тип ордера</span>
+            <span class="detail-pill detail-pill--kind" id="detail-status-kind">—</span>
+          </div>
+        </div>
+        <div class="detail-rows" id="detail-rows"></div>
+        <div class="detail-meta" id="detail-meta"></div>
+        <button type="button" id="detail-ok" class="btn primary wide" data-i18n="detail_close"></button>
+      </div>
+    </div>
+
+    
+    <div id="modal-levelup" class="modal hidden" role="dialog" aria-modal="true">
+      <div class="backdrop"></div>
+      <div class="sheet lvlup-sheet">
+        
+        <div class="lvlup-stage">
+          <div class="lvlup-rays" aria-hidden="true"></div>
+          <svg class="lvlup-laurel lvlup-laurel-l" viewBox="0 0 40 80" aria-hidden="true">
+            <path class="lvlup-laurel-stem" d="M10 76 Q22 52 14 28 Q8 14 16 4"/>
+            <ellipse class="lvlup-laurel-leaf" cx="22" cy="48" rx="7" ry="3" transform="rotate(-35 22 48)"/>
+            <ellipse class="lvlup-laurel-leaf" cx="18" cy="34" rx="7" ry="3" transform="rotate(-50 18 34)"/>
+            <ellipse class="lvlup-laurel-leaf" cx="15" cy="20" rx="6" ry="2.8" transform="rotate(-60 15 20)"/>
+            <ellipse class="lvlup-laurel-leaf" cx="12" cy="8" rx="5" ry="2.5" transform="rotate(-70 12 8)"/>
+          </svg>
+          <svg class="lvlup-laurel lvlup-laurel-r" viewBox="0 0 40 80" aria-hidden="true">
+            <path class="lvlup-laurel-stem" d="M10 76 Q22 52 14 28 Q8 14 16 4"/>
+            <ellipse class="lvlup-laurel-leaf" cx="22" cy="48" rx="7" ry="3" transform="rotate(-35 22 48)"/>
+            <ellipse class="lvlup-laurel-leaf" cx="18" cy="34" rx="7" ry="3" transform="rotate(-50 18 34)"/>
+            <ellipse class="lvlup-laurel-leaf" cx="15" cy="20" rx="6" ry="2.8" transform="rotate(-60 15 20)"/>
+            <ellipse class="lvlup-laurel-leaf" cx="12" cy="8" rx="5" ry="2.5" transform="rotate(-70 12 8)"/>
+          </svg>
+          <div class="lvlup-ico class-ico" id="lvlup-ico"></div>
+          <span class="lvlup-spark" style="top:6%;left:18%"></span>
+          <span class="lvlup-spark" style="top:24%;right:10%"></span>
+          <span class="lvlup-spark" style="bottom:14%;left:28%"></span>
+          <span class="lvlup-spark" style="top:58%;right:24%"></span>
+          <span class="lvlup-spark" style="bottom:6%;right:32%"></span>
+        </div>
+        <p class="lvlup-pre" data-i18n="class_new_pre"></p>
+        <h2 class="lvlup-name" id="lvlup-name">—</h2>
+        
+        <div class="lvlup-journey">
+          <div class="lvlup-leg lvlup-from">
+            <div class="class-ico lvlup-leg-ico" id="lvlup-from-ico"></div>
+            <span class="lvlup-leg-name" id="lvlup-from-name">—</span>
+          </div>
+          <svg class="lvlup-arrow" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14m-5-5l5 5-5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div class="lvlup-leg lvlup-to">
+            <div class="class-ico lvlup-leg-ico lvlup-leg-ico--new" id="lvlup-to-ico"></div>
+            <span class="lvlup-leg-name" id="lvlup-to-name">—</span>
+          </div>
+        </div>
+        
+        <div class="lvlup-reward">
+          <span class="lvlup-reward-label" data-i18n="class_reward_label"></span>
+          <span class="lvlup-reward-val" id="lvlup-reward">+0</span>
+        </div>
+        
+        <button type="button" id="btn-levelup-claim" class="btn primary big lvlup-claim" data-i18n="class_claim"></button>
+      </div>
+    </div>
+
+    
+    <div id="toasts" aria-live="polite"></div>
+  </div>
+
+  <!-- Режим анимаций (продвинутые/стандартные, «меньше движения») —
+       первым: подменяет matchMedia до того, как его прочтут остальные. -->
+  <script src="js/v3-motion.js?v=218"></script>
+  <script src="js/yandex-sdk.js?v=218"></script>
+  
+  <script>if (/[?&]dev=(orders|portfolio|lobby|profile|market|rating)\b/.test(location.search) && isDevHost()) document.write('<script src="_dev_seed.js?v=218"><\/script>');</script>
+  <script src="js/data-coins.js?v=220"></script>
+  <script src="js/data-market.js?v=218"></script>
+  <script src="js/data.js?v=218"></script>
+  <script src="js/i18n.js?v=218"></script>
+  <script src="js/engine.js?v=218"></script>
+  <script src="js/chart.js?v=218"></script>
+  <script src="js/fx.js?v=223"></script>
+  <script src="js/sound.js?v=225"></script>
+  <script src="js/splash.js?v=218"></script>
+<script src="js/achievements.js?v=218"></script>
+  <script src="js/v3-kit.js?v=218"></script>
+  <script src="js/assets-manifest.js?v=221"></script>
+  <script src="js/loader.js?v=221"></script>
+  <script src="js/main.js?v=225"></script>
+  <!-- Фьючерсы грузятся после main.js: используют его глобалы и хуки. -->
+  <script src="js/futures.js?v=225"></script>
+  <!-- Поведенческий слой tu-v2-trade: читает DOM, вешает оформительские
+     классы. В логику игры не вмешивается; откат — удалить файл и строку. -->
+  <script src="js/tu-v2.js?v=218"></script>
+  <!-- v3: поведенческие слои вкладок (концепты concept/*.html). -->
+  <script src="js/v3-lobby.js?v=225"></script>
+  <script src="js/v3-market.js?v=225"></script>
+  <script src="js/v3-portfolio.js?v=223"></script>
+  <script src="js/v3-rating.js?v=223"></script>
+  <script src="js/v3-profile.js?v=218"></script>
+  <script src="js/v3-ach.js?v=223"></script>
+  <script src="js/v3-news.js?v=223"></script>
+  <script src="js/v3-wheel.js?v=223"></script>
+  <script src="js/v3-alerts.js?v=223"></script>
+  <script src="js/v3-settings.js?v=223"></script>
+  <script src="js/quests.js?v=224"></script>
+  
+  <script>if (/[?&]dev=orders\b/.test(location.search) && isDevHost()) document.write('<script src="_dev_orders.js?v=218"><\/script>');</script>
+</body>
+</html>

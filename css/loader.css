@@ -1,0 +1,246 @@
+/* loader.css — экран первой загрузки (концепт concept/loading.html).
+   Прогресс — линия графика с ценником «▲ 47%», ниже список групп
+   ресурсов. Цвета берём из переменных текущей темы игры. Всё заперто
+   под #scr-loading. --k — множитель длительности анимаций. */
+
+#scr-loading {
+  --k: 1;
+  --ld-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ld-spring: cubic-bezier(0.34, 1.5, 0.55, 1);
+  --ld-track: color-mix(in srgb, var(--muted) 18%, transparent);
+  --ld-sheen: linear-gradient(180deg, color-mix(in srgb, #fff 3%, transparent), transparent 42%);
+  overflow: hidden;
+}
+:root[data-theme="light"] #scr-loading { --ld-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.7), transparent 42%); }
+#scr-loading .ld {
+  position: absolute; inset: 0; z-index: 1;
+  display: flex; flex-direction: column; align-items: center;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) 20px 58px;
+}
+#scr-loading .ld.out .ld-fg { animation: ldOut calc(var(--k) * 520ms) var(--ld-ease) forwards; }
+#scr-loading .ld.out.fast .ld-fg { animation-duration: calc(var(--k) * 320ms); }
+@keyframes ldOut { to { opacity: 0; transform: scale(1.05); filter: blur(4px); } }
+#scr-loading.ld-leaving .splash-ticker { transition: opacity calc(var(--k) * 400ms); opacity: 0; }
+
+#scr-loading .ld-aurora, #scr-loading .ld-grid { position: absolute; pointer-events: none; z-index: 0; }
+#scr-loading .ld-aurora {
+  inset: -22% -30% auto -30%; height: 90%;
+  background: radial-gradient(64% 52% at 50% 16%, color-mix(in srgb, var(--gold) 16%, transparent), transparent 72%);
+  animation: ldAurora 16s ease-in-out infinite alternate;
+}
+@keyframes ldAurora { from { transform: translate3d(-3%, -2%, 0) scale(1); opacity: 0.85; } to { transform: translate3d(3%, 2%, 0) scale(1.08); opacity: 1; } }
+#scr-loading .ld-grid {
+  inset: 0;
+  background-image:
+    linear-gradient(to right, color-mix(in srgb, var(--text) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--text) 6%, transparent) 1px, transparent 1px);
+  background-size: 34px 34px;
+  -webkit-mask-image: radial-gradient(74% 50% at 50% 30%, #000 30%, transparent 100%);
+          mask-image: radial-gradient(74% 50% at 50% 30%, #000 30%, transparent 100%);
+  animation: ldGrid 24s linear infinite;
+}
+@keyframes ldGrid { to { background-position: 34px 0, 0 -34px; } }
+
+#scr-loading .ld-fg { position: relative; z-index: 2; width: 100%; max-width: 380px; flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; }
+#scr-loading .ld-fg > * { flex-shrink: 0; }
+#scr-loading .rv { animation: ldRv calc(var(--k) * 640ms) var(--ld-ease) calc(var(--k) * var(--d, 0) * 1ms) backwards; }
+@keyframes ldRv { from { opacity: 0; transform: translateY(16px) scale(0.985); } to { opacity: 1; transform: none; } }
+
+/* Плашка режима. Пустая (до старта лоадера) не видна. */
+#scr-loading .ld-pill {
+  display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px 0 10px;
+  border-radius: 99px; font-size: 12.5px; font-weight: 800; white-space: nowrap;
+  background: color-mix(in srgb, var(--card) 80%, transparent); border: 1px solid var(--border);
+  color: var(--muted);
+  transition: color 0.3s, border-color 0.3s, background 0.3s;
+}
+#scr-loading .ld-pill:empty { visibility: hidden; }
+#scr-loading .ld-pill svg { width: 15px; height: 15px; flex: none; }
+#scr-loading .ld-pill.gold { color: var(--gold); border-color: var(--gold-border); background: var(--gold-soft); }
+#scr-loading .ld-pill.up { color: var(--up); border-color: color-mix(in srgb, var(--up) 35%, transparent); background: var(--up-dim); }
+#scr-loading .ld-pill.down { color: var(--down); border-color: color-mix(in srgb, var(--down) 35%, transparent); background: var(--down-dim); }
+#scr-loading .ld-pill.swap { animation: ldPill calc(var(--k) * 460ms) var(--ld-spring); }
+@keyframes ldPill { 0% { transform: scale(0.86); opacity: 0.4; } 100% { transform: none; opacity: 1; } }
+
+/* Монета с гало. */
+#scr-loading .ld-coin { position: relative; width: 96px; height: 96px; margin: 20px 0 12px; flex: none; }
+#scr-loading .ld-coin .face {
+  position: absolute; inset: 0; border-radius: 50%; padding: 5px; background: var(--gold-grad);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--gold-border), inset 0 0 0 1.5px rgba(255, 255, 255, 0.18);
+  animation: ldCoinIn calc(var(--k) * 720ms) cubic-bezier(0.2, 1.2, 0.35, 1) backwards;
+}
+#scr-loading .ld-coin .face img { display: block; width: 100%; height: 100%; border-radius: 50%; background: var(--card); object-fit: cover; }
+#scr-loading .ld-coin .halo {
+  position: absolute; inset: -11px; border-radius: 50%;
+  background: conic-gradient(from 0deg, transparent 0deg, color-mix(in srgb, var(--gold) 60%, transparent) 70deg, transparent 150deg, transparent 210deg, color-mix(in srgb, var(--gold) 35%, transparent) 285deg, transparent 340deg);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 2px));
+  animation: ldHalo calc(var(--k) * 7s) linear infinite;
+}
+#scr-loading .ld.busy .ld-coin .halo { animation-duration: calc(var(--k) * 2.4s); }
+#scr-loading .ld.paused .ld-coin .halo { animation-play-state: paused; opacity: 0.35; }
+@keyframes ldHalo { to { transform: rotate(360deg); } }
+@keyframes ldCoinIn { 0% { opacity: 0; transform: scale(0.42) rotate(-22deg); } 55% { opacity: 1; transform: scale(1.08) rotate(5deg); } 100% { opacity: 1; transform: none; } }
+#scr-loading .ld-coin.bump .face { animation: ldBump calc(var(--k) * 520ms) var(--ld-spring); }
+@keyframes ldBump { 0% { transform: scale(1); } 35% { transform: scale(1.1); } 100% { transform: scale(1); } }
+#scr-loading .ld-coin .ping { position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--gold); opacity: 0; pointer-events: none; }
+#scr-loading .ld-coin .ping.go { animation: ldPing calc(var(--k) * 900ms) cubic-bezier(0.2, 0.8, 0.3, 1); }
+@keyframes ldPing { from { transform: scale(1); opacity: 0.7; } to { transform: scale(1.8); opacity: 0; } }
+#scr-loading .ld-coin .rays {
+  position: absolute; inset: -70px; border-radius: 50%; opacity: 0; pointer-events: none; z-index: -1;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--gold) 34%, transparent) 0deg 6deg, transparent 6deg 22deg);
+  -webkit-mask: radial-gradient(closest-side, #000 20%, transparent 100%); mask: radial-gradient(closest-side, #000 20%, transparent 100%);
+}
+#scr-loading .ld.done .ld-coin .rays { animation: ldRays calc(var(--k) * 1200ms) var(--ld-ease) forwards; }
+@keyframes ldRays { 0% { opacity: 0; transform: scale(0.4) rotate(0); } 40% { opacity: 1; } 100% { opacity: 0; transform: scale(1.15) rotate(40deg); } }
+
+#scr-loading .ld-name { font-size: 20px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: var(--text); }
+#scr-loading .ld-name b {
+  background: linear-gradient(100deg, var(--gold) 0%, color-mix(in srgb, var(--gold) 55%, #fff) 38%, color-mix(in srgb, var(--gold) 30%, #fff) 50%, color-mix(in srgb, var(--gold) 55%, #fff) 62%, var(--gold) 100%);
+  background-size: 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: ldShine 4.5s ease-in-out infinite;
+}
+@keyframes ldShine { 0%, 100% { background-position: 120% 0; } 55% { background-position: -20% 0; } }
+
+/* Надпись этапа: старая уезжает вверх, новая приходит снизу. */
+#scr-loading .ld-stage { position: relative; height: 22px; width: 100%; margin: 16px 0 2px; overflow: hidden; text-align: center; font-size: 15px; font-weight: 700; color: var(--text); }
+#scr-loading .ld-stage span { position: absolute; left: 0; right: 0; top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#scr-loading .ld-stage span.in { animation: ldStIn calc(var(--k) * 380ms) var(--ld-ease) both; }
+#scr-loading .ld-stage span.gone { animation: ldStOut calc(var(--k) * 320ms) var(--ld-ease) forwards; }
+#scr-loading .ld-stage span i { font-style: normal; color: var(--muted); font-weight: 600; }
+@keyframes ldStIn { from { transform: translateY(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes ldStOut { to { transform: translateY(-100%); opacity: 0; } }
+
+/* График-прогресс. */
+#scr-loading .ld-chart { position: relative; width: 100%; height: 100px; margin-top: 10px; flex: none; }
+#scr-loading .ld-chart svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+#scr-loading .ld-chart .gl { stroke: var(--ld-track); stroke-width: 1; vector-effect: non-scaling-stroke; }
+#scr-loading .ld-chart .tg { stroke: var(--gold-border); stroke-width: 1; stroke-dasharray: 3 4; vector-effect: non-scaling-stroke; }
+#scr-loading .ld-chart .ln { fill: none; stroke: var(--gold); stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 6px color-mix(in srgb, var(--gold) 60%, transparent)); transition: stroke 0.35s; }
+#scr-loading .ld-chart .ar { transition: opacity 0.35s; }
+#scr-loading .ld-chart .ga0 { stop-color: var(--gold); stop-opacity: 0.32; }
+#scr-loading .ld-chart .ga1 { stop-color: var(--gold); stop-opacity: 0; }
+#scr-loading .ld.paused .ld-chart .ln { stroke: var(--down); filter: none; stroke-dasharray: 5 5; }
+#scr-loading .ld.paused .ld-chart .ar { opacity: 0.35; }
+#scr-loading .ld.done .ld-chart .ln { stroke: var(--up); filter: drop-shadow(0 0 8px color-mix(in srgb, var(--up) 70%, transparent)); }
+#scr-loading .ld-chart .tgl { position: absolute; right: 0; top: -2px; font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; color: var(--gold); opacity: 0.8; }
+#scr-loading .ld-head { position: absolute; left: 0; top: 94%; width: 0; height: 0; pointer-events: none; }
+#scr-loading .ld-head .dot { position: absolute; left: -5px; top: -5px; width: 10px; height: 10px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 0 4px color-mix(in srgb, var(--gold) 22%, transparent), 0 0 16px var(--gold); }
+#scr-loading .ld-head .dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--gold); animation: ldDot calc(var(--k) * 1.6s) ease-out infinite; }
+@keyframes ldDot { from { transform: scale(1); opacity: 0.7; } to { transform: scale(3.2); opacity: 0; } }
+#scr-loading .ld-head .tag {
+  position: absolute; bottom: 12px; left: 0; transform: translateX(-50%);
+  padding: 4px 8px; border-radius: 8px; white-space: nowrap;
+  font-size: 12.5px; font-weight: 900; color: var(--primary-text); background: var(--gold-grad);
+  box-shadow: 0 6px 16px -6px color-mix(in srgb, var(--gold) 80%, transparent);
+  transition: transform 0.25s var(--ld-ease), background 0.3s;
+}
+#scr-loading .ld-head .tag::after { content: ""; position: absolute; left: 50%; bottom: -4px; margin-left: -4px; border: 4px solid transparent; border-bottom: 0; border-top-color: var(--gold); transition: left 0.25s var(--ld-ease); }
+#scr-loading .ld-head.edge .tag { transform: translateX(-88%); }
+#scr-loading .ld-head.edge .tag::after { left: 88%; }
+#scr-loading .ld-head.low .tag { transform: translateX(-12%); }
+#scr-loading .ld-head.low .tag::after { left: 12%; }
+#scr-loading .ld.paused .ld-head .dot, #scr-loading .ld.paused .ld-head .dot::after { background: var(--down); box-shadow: 0 0 0 4px var(--down-dim); }
+#scr-loading .ld.paused .ld-head .tag { background: var(--down); color: #fff; box-shadow: none; }
+#scr-loading .ld.paused .ld-head .tag::after { border-top-color: var(--down); }
+#scr-loading .ld.done .ld-head .dot, #scr-loading .ld.done .ld-head .dot::after { background: var(--up); box-shadow: 0 0 0 4px var(--up-dim), 0 0 16px var(--up); }
+#scr-loading .ld.done .ld-head .tag { background: var(--up); color: #fff; box-shadow: 0 6px 16px -6px var(--up); }
+#scr-loading .ld.done .ld-head .tag::after { border-top-color: var(--up); }
+#scr-loading .ld-head .tag.tick { animation: ldTick calc(var(--k) * 300ms) var(--ld-spring); }
+@keyframes ldTick { 0% { scale: 1; } 40% { scale: 1.12; } 100% { scale: 1; } }
+
+#scr-loading .ld-meta { width: 100%; min-height: 18px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-top: 10px; font-size: 12.5px; color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+#scr-loading .ld-meta b { color: var(--text); font-weight: 800; }
+
+/* Список групп ресурсов. */
+#scr-loading .ld-list {
+  width: 100%; margin-top: 12px; padding: 4px 14px; border-radius: 20px; overflow: hidden;
+  background: var(--ld-sheen), var(--card); border: 1px solid var(--border);
+  box-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.6);
+}
+#scr-loading .ld-list:empty { display: none; }
+#scr-loading .ld-row { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 11px; padding: 7px 0; position: relative; transition: opacity 0.3s; }
+#scr-loading .ld-row + .ld-row { border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent); }
+#scr-loading .ld-row .ic { position: relative; width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; background: var(--card2); border: 1px solid var(--border); color: var(--muted); transition: color 0.3s, border-color 0.3s, background 0.3s; }
+#scr-loading .ld-row .ic svg { width: 16px; height: 16px; }
+#scr-loading .ld-row .nm { min-width: 0; }
+#scr-loading .ld-row .nm b { display: block; font-size: 13.5px; font-weight: 800; color: var(--text); }
+#scr-loading .ld-row .nm i { display: block; font-style: normal; font-size: 11.5px; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#scr-loading .ld-row .st { font-size: 12px; font-weight: 800; color: var(--muted); display: flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+#scr-loading .ld-row .st em { font-style: normal; }
+#scr-loading .ld-row .st .ok { width: 18px; height: 18px; border-radius: 50%; display: none; place-items: center; background: var(--up); color: #fff; }
+#scr-loading .ld-row .st .ok svg { width: 11px; height: 11px; }
+#scr-loading .ld-row .st .sp { width: 16px; height: 16px; border-radius: 50%; display: none; border: 2px solid var(--ld-track); border-top-color: var(--gold); animation: ldSpin calc(var(--k) * 800ms) linear infinite; }
+@keyframes ldSpin { to { transform: rotate(360deg); } }
+#scr-loading .ld-row .mb { position: absolute; left: 41px; right: 0; bottom: 2px; height: 2px; border-radius: 99px; background: var(--ld-track); overflow: hidden; opacity: 0; transition: opacity 0.3s; }
+#scr-loading .ld-row .mb u { display: block; height: 100%; width: 0; background: var(--gold-grad); }
+#scr-loading .ld-row[data-s="queue"] { opacity: 0.55; }
+#scr-loading .ld-row[data-s="load"] .ic { color: var(--gold); border-color: var(--gold-border); background: var(--gold-soft); }
+#scr-loading .ld-row[data-s="load"] .sp { display: block; }
+#scr-loading .ld-row[data-s="load"] .mb { opacity: 1; }
+#scr-loading .ld-row[data-s="load"] .st { color: var(--text); }
+#scr-loading .ld-row[data-s="pause"] .ic { color: var(--down); border-color: color-mix(in srgb, var(--down) 35%, transparent); background: var(--down-dim); }
+#scr-loading .ld-row[data-s="pause"] .mb { opacity: 1; }
+#scr-loading .ld-row[data-s="pause"] .mb u { background: var(--down); }
+#scr-loading .ld-row[data-s="pause"] .st { color: var(--down); }
+#scr-loading .ld-row[data-s="done"] .ok, #scr-loading .ld-row[data-s="cache"] .ok { display: grid; animation: ldOk calc(var(--k) * 460ms) var(--ld-spring); }
+#scr-loading .ld-row[data-s="cache"] .ok { background: var(--gold-soft); color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold-border); }
+#scr-loading .ld-row[data-s="done"] .ic { color: var(--up); }
+#scr-loading .ld-row[data-s="cache"] .ic { color: var(--gold); }
+#scr-loading .ld-row.flash::after { content: ""; position: absolute; inset: 2px -8px; border-radius: 12px; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--up) 18%, transparent), transparent); animation: ldFlash calc(var(--k) * 700ms) var(--ld-ease) forwards; pointer-events: none; }
+#scr-loading .ld-row.flash.g::after { background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold) 16%, transparent), transparent); }
+@keyframes ldFlash { from { transform: translateX(-60%); opacity: 1; } to { transform: translateX(60%); opacity: 0; } }
+@keyframes ldOk { 0% { transform: scale(0.3); opacity: 0; } 60% { transform: scale(1.2); opacity: 1; } 100% { transform: none; } }
+
+/* Совет / кнопка повтора — внизу, над тикером. */
+#scr-loading .ld-foot { width: 100%; margin-top: auto; padding-top: 10px; min-height: 58px; position: relative; }
+#scr-loading .ld-tip { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; line-height: 1.45; color: var(--muted); }
+#scr-loading .ld-tip .ti { flex: none; width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold); font-size: 12px; font-weight: 900; }
+#scr-loading .ld-tip span.in { animation: ldStIn calc(var(--k) * 420ms) var(--ld-ease) both; }
+#scr-loading .ld-retry { display: flex; align-items: center; gap: 12px; padding: 10px 10px 10px 14px; border-radius: 16px; background: var(--down-dim); border: 1px solid color-mix(in srgb, var(--down) 30%, transparent); animation: ldRv calc(var(--k) * 460ms) var(--ld-ease) backwards; }
+#scr-loading .ld-retry div { flex: 1; font-size: 12px; color: var(--muted); line-height: 1.35; }
+#scr-loading .ld-retry div b { display: block; color: var(--text); font-size: 13.5px; }
+#scr-loading .ld-retry button { flex: none; padding: 10px 14px; border: 0; border-radius: 12px; font: inherit; font-weight: 800; font-size: 13.5px; background: var(--gold-grad); color: var(--primary-text); cursor: pointer; transition: transform 0.12s; }
+#scr-loading .ld-retry button:active { transform: scale(0.94); }
+
+/* Искра: летит от строки группы в монету. */
+.ld-fly { position: fixed; z-index: 9999; left: 0; top: 0; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 12px var(--gold), 0 0 0 3px color-mix(in srgb, var(--gold) 25%, transparent); pointer-events: none; }
+.ld-fly.up { background: var(--up); box-shadow: 0 0 12px var(--up), 0 0 0 3px var(--up-dim); }
+
+/* Тост после загрузки. */
+.ld-toast {
+  position: fixed; z-index: 9998; top: calc(10px + env(safe-area-inset-top, 0px)); left: 50%;
+  width: min(420px, calc(100% - 28px)); transform: translateX(-50%);
+  display: flex; align-items: center; gap: 11px; padding: 11px 14px; border-radius: 16px;
+  background: color-mix(in srgb, var(--card) 94%, transparent); border: 1px solid var(--gold-border);
+  box-shadow: 0 16px 40px -14px rgba(0, 0, 0, 0.7);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  animation: ldToastIn 520ms var(--ld-spring, cubic-bezier(0.34, 1.5, 0.55, 1)) backwards;
+  pointer-events: none;
+}
+.ld-toast.bye { animation: ldToastOut 360ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+.ld-toast .ti2 { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; background: var(--gold-soft); color: var(--gold); flex: none; }
+.ld-toast .ti2 svg { width: 17px; height: 17px; }
+.ld-toast div { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.ld-toast div b { display: block; font-size: 14px; color: var(--text); }
+@keyframes ldToastIn { from { transform: translate(-50%, -140%); opacity: 0; } to { transform: translateX(-50%); opacity: 1; } }
+@keyframes ldToastOut { to { transform: translate(-50%, -140%); opacity: 0; } }
+
+@media (max-height: 760px) {
+  #scr-loading .ld-coin { width: 80px; height: 80px; margin: 14px 0 10px; }
+  #scr-loading .ld-stage { margin-top: 12px; }
+  #scr-loading .ld-chart { height: 86px; }
+  #scr-loading .ld-row { padding: 5px 0; }
+}
+@media (max-height: 640px) {
+  #scr-loading .ld-coin { width: 64px; height: 64px; margin: 8px 0 6px; }
+  #scr-loading .ld-name { font-size: 16px; }
+  #scr-loading .ld-chart { height: 70px; }
+  #scr-loading .ld-row .ic { width: 26px; height: 26px; border-radius: 9px; }
+  #scr-loading .ld-row .nm i { display: none; }
+  #scr-loading .ld-foot { min-height: 0; }
+  #scr-loading .ld-tip { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #scr-loading *, #scr-loading *::before, #scr-loading *::after, .ld-toast { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

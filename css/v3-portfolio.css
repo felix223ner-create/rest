@@ -1,0 +1,379 @@
+/* v3 — вкладка «Портфель» по concept/portfolio.html. Карточка капитала с
+   табло, SVG-графиком и панелями, список активов с кольцами долей,
+   распределение, фьючерсы, лидер/аутсайдер и последние операции.
+   Поведение — js/v3-portfolio.js. */
+
+@property --pfcc { syntax: '<color>'; inherits: true; initial-value: #2fbe6e; }
+
+/* ---------------- Общие детали карточек ---------------- */
+
+#tab-portfolio .card { padding: 14px; border-radius: 20px; }
+/* Каскад появления карточек — .rv концепта: 0.72 с, 24px, задержки 0/110/230/320/400/480. */
+#tab-portfolio > * { animation: v3pfRvIn calc(var(--k) * 720ms) var(--ease) backwards; }
+#tab-portfolio > #pf-hero { animation-delay: 0ms; }
+#tab-portfolio > #pf-assets-card { animation-delay: calc(var(--k) * 110ms); }
+#tab-portfolio > #pf-alloc-card { animation-delay: calc(var(--k) * 230ms); }
+#tab-portfolio > #pf-fut-card { animation-delay: calc(var(--k) * 320ms); }
+#tab-portfolio > #pf-top-card { animation-delay: calc(var(--k) * 400ms); }
+#tab-portfolio > #pf-ops-card { animation-delay: calc(var(--k) * 480ms); }
+@keyframes v3pfRvIn { from { opacity: 0; transform: translateY(24px) scale(0.975); } to { opacity: 1; transform: none; } }
+.v3pf-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; min-height: 24px; }
+.v3pf-head h2 { margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+.v3pf-badge {
+  min-width: 22px; height: 22px; padding: 0 7px; border-radius: 99px;
+  display: inline-grid; place-items: center;
+  font-size: 12px; font-weight: 800; background: var(--gold-soft); color: var(--gold);
+}
+.v3pf-hint { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
+
+/* Сегменты концепта: плотнее, чем .v3-seg, таблетка ездит под кнопкой. */
+.v3pf-seg { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 3px; border-radius: 12px; background: var(--card2); border: 1px solid var(--border); }
+.v3pf-seg > button {
+  position: relative; z-index: 1; height: 28px; padding: 0 10px; border: 0; border-radius: 9px; background: none;
+  font: inherit; font-size: 12px; font-weight: 800; color: var(--muted); white-space: nowrap; cursor: pointer;
+  transition: color 0.25s; -webkit-tap-highlight-color: transparent;
+}
+.v3pf-seg > button.on { color: var(--primary-text); }
+.v3pf-seg > button:active { transform: scale(0.96); }
+.v3pf-ind {
+  position: absolute; z-index: 0; top: 3px; left: 0; height: calc(100% - 6px); width: 0;
+  border-radius: 9px; background: var(--gold-grad);
+  box-shadow: 0 6px 14px -6px rgba(233, 182, 64, 0.85);
+  transition: transform calc(var(--k) * 460ms) cubic-bezier(0.3, 1.25, 0.5, 1), width calc(var(--k) * 460ms) cubic-bezier(0.3, 1.25, 0.5, 1);
+}
+
+/* ---------------- Карточка капитала ---------------- */
+
+.v3pf-hero {
+  position: relative; overflow: hidden; padding: 16px 16px 14px !important;
+  border-color: var(--gold-border);
+  background: radial-gradient(260px 160px at 10% -12%, var(--gold-soft), transparent 70%), var(--sheen), var(--card);
+}
+.v3pf-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.v3pf-kicker { display: inline-flex; align-items: center; gap: 7px; min-width: 0; font-size: 11px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.v3pf-labels { display: inline-grid; min-width: 0; }
+.v3pf-labels em {
+  grid-area: 1 / 1; font-style: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  opacity: 0; transform: translateY(7px);
+  transition: opacity calc(var(--k) * 300ms), transform calc(var(--k) * 400ms) var(--ease);
+}
+.v3pf-labels em.on { opacity: 1; transform: none; }
+.v3pf-mode { flex: none; }
+
+/* Табло: барабаны V3.odo, при входе и смене режима — с каскадом по цифрам. */
+.v3pf-total {
+  display: flex; margin-top: 8px; min-height: 1.12em;
+  font-size: 38px; font-weight: 850; letter-spacing: -0.025em; line-height: 1.12; white-space: nowrap;
+  color: var(--text); font-variant-numeric: tabular-nums; transition: color 0.5s;
+}
+/* Барабан сдвигается на N em — высота ячейки строго 1em, воздух даёт отступ сверху. */
+.v3pf-total .odo { padding: 0.06em 0; }
+.v3pf-total .odo-d > span > i { line-height: 1; }
+.v3pf-total .odo-d > span { transition: transform calc(var(--k) * 420ms) cubic-bezier(0.2, 0.85, 0.25, 1); }
+/* Интро: барабаны докручиваются с каскадом по цифрам (--j — номер цифры, ставит JS). */
+.v3pf-total.big-roll .odo-d > span { transition-duration: calc(var(--k) * 950ms); transition-delay: calc(var(--j, 0) * 34ms * var(--k)); }
+.v3pf-total.instant .odo-d > span { transition: none; }
+/* Одометр рисует .cents полупрозрачными — в табло копейки как в концепте, полной яркости. */
+.v3pf-total .odo .cents { opacity: 1; }
+.v3pf-total.pf-fl-up { animation: v3pfTotUp calc(var(--k) * 1s) ease-out; }
+.v3pf-total.pf-fl-down { animation: v3pfTotDown calc(var(--k) * 1s) ease-out; }
+@keyframes v3pfTotUp { 0%, 25% { color: var(--up); text-shadow: 0 0 22px var(--up-dim); } }
+@keyframes v3pfTotDown { 0%, 25% { color: var(--down); text-shadow: 0 0 22px var(--down-dim); } }
+
+.v3pf-sub { display: flex; align-items: center; gap: 8px; min-height: 26px; margin-top: 8px; }
+.v3pf-pill {
+  display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px 4px 7px; border-radius: 99px;
+  font-size: 13px; font-weight: 800; white-space: nowrap;
+  background: var(--up-dim); color: var(--up);
+  transition: background-color 0.4s, color 0.4s;
+}
+.v3pf-pill.hidden { display: none; }
+.v3pf-pill svg { width: 14px; height: 14px; flex: none; transition: transform 0.5s var(--spring); }
+.v3pf-pill.down { background: var(--down-dim); color: var(--down); }
+.v3pf-pill.down svg { transform: rotate(180deg); }
+.v3pf-per { min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* График: цвет линии и заливки перетекает между up/down через --pfcc. */
+.v3pf-chart {
+  --pfcc: var(--up);
+  --pf-line-shadow: rgba(0, 0, 0, 0.45);
+  position: relative; height: 170px; margin: 6px -16px 0;
+  cursor: crosshair; touch-action: pan-y; user-select: none; -webkit-user-select: none;
+  transition: --pfcc 0.6s;
+}
+:root[data-theme="light"] .v3pf-chart { --pf-line-shadow: rgba(29, 158, 90, 0.18); }
+:root[data-theme="midnight"] .v3pf-chart { --pf-line-shadow: rgba(0, 0, 0, 0.5); }
+/* style.css задаёт #pf-chart 100% × 132px: с отрицательными полями график не доходил до правого края. */
+#tab-portfolio #pf-chart { width: auto; height: 170px; }
+.v3pf-chart.is-down { --pfcc: var(--down); }
+.v3pf-chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.pfc-grid line { stroke: var(--chart-grid); stroke-dasharray: 2 5; }
+.pfc-base { stroke: var(--muted); stroke-opacity: 0.45; stroke-dasharray: 3 4; }
+#pfc-line { fill: none; stroke: var(--pfcc); stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; filter: drop-shadow(0 6px 8px var(--pf-line-shadow)); }
+#pfc-cross { stroke: var(--text); stroke-opacity: 0.35; stroke-dasharray: 3 3; opacity: 0; transition: opacity 0.15s; }
+#pfc-dot { fill: var(--pfcc); stroke: var(--card); stroke-width: 2.5; }
+#pfc-pulse { fill: var(--pfcc); transform-box: fill-box; transform-origin: center; animation: v3pfPulse calc(var(--k) * 1.8s) ease-out infinite; }
+@keyframes v3pfPulse { from { transform: scale(0.4); opacity: 0.55; } to { transform: scale(2.4); opacity: 0; } }
+.v3pf-chart.scrub #pfc-cross { opacity: 1; }
+.v3pf-chart.scrub #pfc-pulse { display: none; }
+.pfc-base-lbl {
+  position: absolute; left: 12px; transform: translateY(calc(-100% - 3px));
+  padding: 0 4px; border-radius: 5px; font-size: 10px; font-weight: 700; color: var(--muted);
+  background: var(--card); opacity: 0.9; pointer-events: none; white-space: nowrap;
+}
+.pfc-tip {
+  position: absolute; top: 0; left: 0; z-index: 2;
+  padding: 5px 9px; border-radius: 10px;
+  background: var(--bubble-bg, #2a3140); color: var(--bubble-text, #fff);
+  font-size: 12.5px; font-weight: 800; white-space: nowrap; text-align: center; pointer-events: none;
+  opacity: 0; transform: translate(-50%, calc(-100% - 6px)) scale(0.9);
+  transition: opacity 0.15s, transform 0.15s;
+  box-shadow: 0 8px 18px -8px rgba(0, 0, 0, 0.6);
+}
+.pfc-tip b { display: block; font-weight: 800; }
+.pfc-tip span { display: block; font-size: 10.5px; font-weight: 700; opacity: 0.7; }
+.v3pf-chart.scrub .pfc-tip { opacity: 1; transform: translate(-50%, calc(-100% - 12px)); }
+.pfc-tip.below { transform: translate(-50%, 6px) scale(0.9); }
+.v3pf-chart.scrub .pfc-tip.below { transform: translate(-50%, 12px); }
+
+.v3pf-periods { margin-top: 8px; }
+.v3pf-periods > button { height: 32px; font-size: 12.5px; }
+
+/* Панели «Капитал / Позиции»: скрытая уезжает вправо, высота анимируется из JS. */
+.v3pf-stats { position: relative; margin-top: 12px; transition: height calc(var(--k) * 420ms) var(--ease); }
+.v3pf-panel { transition: opacity calc(var(--k) * 300ms), transform calc(var(--k) * 420ms) var(--ease); }
+.v3pf-panel.off { position: absolute; top: 0; left: 0; right: 0; opacity: 0; transform: translateX(18px); pointer-events: none; }
+.v3pf-comp { display: flex; gap: 3px; height: 9px; margin-bottom: 10px; }
+.v3pf-comp i { display: block; flex: 0 1 0; min-width: 4px; border-radius: 99px; background: var(--c); transition: flex-grow calc(var(--k) * 900ms) cubic-bezier(0.3, 1.25, 0.4, 1); }
+.v3pf-tiles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.v3pf-tile { position: relative; min-width: 0; padding: 9px 10px; border-radius: 14px; background: var(--card2); border: 1px solid var(--border); overflow: hidden; transition: border-color 0.3s; }
+.v3pf-tile > span { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.v3pf-tile > span > span { overflow: hidden; text-overflow: ellipsis; }
+.v3pf-tile .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--c); flex: none; }
+.v3pf-tile b { display: block; margin-top: 4px; font-size: 15px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3pf-tile em { display: block; font-style: normal; font-size: 11px; font-weight: 700; color: var(--muted); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3pf-tile.rec { border-color: var(--gold-border); }
+.v3pf-tile.rec::after {
+  content: attr(data-new); position: absolute; top: 6px; right: 6px; padding: 1px 5px; border-radius: 99px;
+  font-size: 9px; font-weight: 900; color: var(--primary-text); background: var(--gold-grad);
+  animation: v3pfRecPop calc(var(--k) * 500ms) var(--spring);
+}
+@keyframes v3pfRecPop { from { transform: scale(0.3); opacity: 0; } }
+
+/* ---------------- Ваши активы ---------------- */
+
+.v3pf-chips { margin-bottom: 10px; }
+.v3pf-chips > button { height: 30px; }
+.v3pf-chips .v3pf-ind { background: var(--gold-soft); box-shadow: inset 0 0 0 1px var(--gold-border); }
+.v3pf-chips > button.on { color: var(--gold); }
+.v3pf-assets { display: flex; flex-direction: column; gap: 6px; }
+.v3pf-assets .empty { padding: 18px 8px; }
+.v3pf-asset { position: relative; border-radius: 16px; background: var(--card2); border: 1px solid var(--border); transition: border-color 0.25s, box-shadow 0.25s; }
+.v3pf-asset.open { border-color: var(--gold-border); box-shadow: 0 10px 24px -16px rgba(233, 182, 64, 0.5); }
+.v3pf-asset.is-extra { display: none; }
+/* Только на время интро: перенос узла при сортировке перезапустил бы анимацию. */
+.v3pf-assets.intro .v3pf-asset { animation: v3pfRowIn calc(var(--k) * 550ms) var(--ease) both; animation-delay: calc((300ms + var(--i, 0) * 60ms) * var(--k)); }
+.v3pf-asset.pop { animation: v3pfRowIn calc(var(--k) * 500ms) var(--ease) both; animation-delay: calc(var(--n, 0) * 70ms * var(--k)); }
+@keyframes v3pfRowIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: none; } }
+.v3pf-amain {
+  width: 100%; display: grid; grid-template-columns: 44px minmax(0, 1fr) 56px auto; align-items: center; gap: 10px;
+  padding: 10px 12px 10px 10px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer;
+  transition: transform 0.14s var(--ease); -webkit-tap-highlight-color: transparent;
+}
+.v3pf-amain:active { transform: scale(0.985); }
+.v3pf-logo { position: relative; width: 44px; height: 44px; display: grid; place-items: center; }
+.v3pf-logo img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+.v3pf-ring { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.v3pf-ring circle { fill: none; stroke-width: 3; }
+.v3pf-ring .rb { stroke: var(--donut-bg, var(--track)); }
+.v3pf-ring .rf { stroke: var(--c); stroke-linecap: round; stroke-dasharray: 0 132; transition: stroke-dasharray calc(var(--k) * 1.1s) cubic-bezier(0.3, 0.9, 0.3, 1); }
+.v3pf-assets.ring-zero .v3pf-ring .rf { stroke-dasharray: 0 132 !important; }
+/* Докупили — логотип «глотает», продали — «выплёвывает» (после закрытия шита сделки). */
+.v3pf-logo.gulp img { animation: v3pfGulp calc(var(--k) * 620ms) var(--spring); }
+.v3pf-logo.gulp-out img { animation: v3pfGulpOut calc(var(--k) * 620ms) var(--spring); }
+@keyframes v3pfGulp { 30% { transform: scale(1.28); } 62% { transform: scale(0.92); } }
+@keyframes v3pfGulpOut { 30% { transform: scale(0.8) rotate(-10deg); } 65% { transform: scale(1.08) rotate(4deg); } }
+/* Имена не режем многоточием: длинные («Gram (prev. Toncoin)») переносятся на вторую строку. */
+.v3pf-aname { min-width: 0; }
+.v3pf-aname b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 14.5px; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.v3pf-aname i { display: block; margin-top: 2px; font-style: normal; font-size: 12px; font-weight: 600; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3pf-spark { width: 56px; height: 28px; overflow: visible; }
+.v3pf-spark .sl { fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; stroke: var(--up); }
+.v3pf-spark .sa { fill: var(--up); opacity: 0.16; }
+.v3pf-spark.down .sl { stroke: var(--down); }
+.v3pf-spark.down .sa { fill: var(--down); }
+.v3pf-aval { min-width: 0; text-align: right; }
+.v3pf-aval b { display: block; font-size: 14.5px; font-weight: 800; white-space: nowrap; transition: color 0.6s, text-shadow 0.6s; }
+.v3pf-aval b.fl-up { color: var(--up); text-shadow: 0 0 12px var(--up-dim); transition: none; }
+.v3pf-aval b.fl-down { color: var(--down); text-shadow: 0 0 12px var(--down-dim); transition: none; }
+.v3pf-aval i { display: block; margin-top: 2px; font-style: normal; font-size: 12px; font-weight: 800; white-space: nowrap; }
+.v3pf-aval i.swap { animation: v3pfSwap calc(var(--k) * 360ms) var(--ease); }
+@keyframes v3pfSwap { from { opacity: 0; transform: translateY(6px); } }
+
+.v3pf-adetail { height: 0; overflow: hidden; transition: height calc(var(--k) * 440ms) cubic-bezier(0.3, 0.9, 0.3, 1); }
+.v3pf-adi { padding: 0 12px 12px; }
+.v3pf-dgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; border-radius: 12px; overflow: hidden; background: var(--border); border: 1px solid var(--border); }
+.v3pf-dgrid div { padding: 8px 10px; background: var(--card); min-width: 0; }
+.v3pf-dgrid span { display: block; font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3pf-dgrid b { display: block; margin-top: 2px; font-size: 13.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3pf-asset.open .v3pf-dgrid div { animation: v3pfDIn calc(var(--k) * 400ms) var(--ease) both; }
+.v3pf-asset.open .v3pf-dgrid div:nth-child(2) { animation-delay: calc(var(--k) * 40ms); }
+.v3pf-asset.open .v3pf-dgrid div:nth-child(3) { animation-delay: calc(var(--k) * 70ms); }
+.v3pf-asset.open .v3pf-dgrid div:nth-child(4) { animation-delay: calc(var(--k) * 100ms); }
+.v3pf-asset.open .v3pf-dgrid div:nth-child(5) { animation-delay: calc(var(--k) * 130ms); }
+.v3pf-asset.open .v3pf-dgrid div:nth-child(6) { animation-delay: calc(var(--k) * 160ms); }
+.v3pf-asset.open .v3pf-dacts { animation: v3pfDIn calc(var(--k) * 450ms) var(--ease) calc(var(--k) * 150ms) both; }
+@keyframes v3pfDIn { from { opacity: 0; transform: translateY(8px); } }
+.v3pf-dacts { display: grid; grid-template-columns: 1fr 1.25fr; gap: 8px; margin-top: 10px; }
+.v3pf-dbtn { position: relative; overflow: hidden; height: 42px; border-radius: 12px; font: inherit; font-size: 13.5px; font-weight: 800; cursor: pointer; transition: transform 0.14s var(--ease); }
+.v3pf-dbtn:active { transform: scale(0.96); }
+.v3pf-dbtn.sell { color: var(--down); background: var(--down-dim); border: 1.5px solid var(--down); }
+.v3pf-dbtn.buy { color: #fff; background: var(--up); border: 0; box-shadow: 0 10px 20px -10px var(--up); }
+
+.v3pf-more {
+  width: 100%; height: 40px; margin-top: 8px; display: flex; align-items: center; justify-content: center; gap: 6px;
+  border-radius: 12px; border: 1px dashed var(--gold-border); background: none;
+  font: inherit; font-size: 13.5px; font-weight: 800; color: var(--gold); cursor: pointer;
+  transition: background-color 0.2s, transform 0.14s;
+}
+.v3pf-more.hidden { display: none; }
+.v3pf-more:active { transform: scale(0.98); background: var(--gold-soft); }
+.v3pf-more svg { width: 15px; height: 15px; transition: transform 0.4s var(--spring); }
+.v3pf-more.on svg { transform: rotate(180deg); }
+
+/* ---------------- Распределение (canvas-кольцо игры в оформлении концепта) ---------------- */
+
+#pf-alloc-card .alloc-wrap { margin-top: 0; gap: 14px; }
+#pf-alloc-card #alloc-donut { width: 148px; height: 148px; }
+#pf-alloc-card .donut-center .dc-val { font-size: 17px; font-weight: 850; }
+#pf-alloc-card .v3pf-dck { max-width: 96px; font-size: 11px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#pf-alloc-card .v3pf-dcs { font-size: 11.5px; font-weight: 800; color: var(--gold); white-space: nowrap; }
+#pf-alloc-card .v3pf-dck ~ .small { display: none; }
+#pf-alloc-card .donut-center.v3pf-swap { animation: v3pfDcIn calc(var(--k) * 300ms) var(--ease); }
+@keyframes v3pfDcIn { 0% { opacity: 0; transform: scale(0.88); } 50% { opacity: 0; transform: scale(0.88); } }
+#pf-alloc-card .alloc-legend { gap: 2px; }
+#pf-alloc-card .alloc-row { padding: 6px 8px; border-radius: 10px; font-size: 13px; }
+#pf-alloc-card .alloc-row .grow b { font-size: 13px; font-weight: 800; }
+#pf-alloc-card .alloc-row .grow i { font-size: 11px; }
+#pf-alloc-card .alloc-pct { font-size: 12.5px; font-weight: 800; }
+#pf-alloc-card .alloc-bar { height: 3px; margin: -4px 8px 4px 25px; background: var(--donut-bg, var(--track)); }
+#pf-alloc-card .alloc-bar div { transition: width calc(var(--k) * 900ms) var(--ease); }
+/* Выбран сектор — остальные строки легенды притухают, как в концепте. */
+#pf-alloc-card .alloc-row, #pf-alloc-card .alloc-bar { transition: opacity 0.3s, background-color 0.2s; }
+#pf-alloc-card .alloc-legend:has(.alloc-row.sel) .alloc-row:not(.sel),
+#pf-alloc-card .alloc-legend:has(.alloc-row.sel) .alloc-row:not(.sel) + .alloc-bar { opacity: 0.38; }
+#pf-alloc-card .alloc-detail { border-radius: 14px; }
+
+/* ---------------- Фьючерсы (карточка из futures.js) ---------------- */
+
+#tab-portfolio .fut-pf .ac-head { margin-bottom: 10px; }
+#tab-portfolio .fut-pf .ac-title { font-size: 17px; font-weight: 800; letter-spacing: -0.01em; }
+#tab-portfolio .fut-pf .ac-more { border-radius: 10px; }
+#tab-portfolio .fut-pf .fpf-top { align-items: flex-end; }
+#tab-portfolio .fut-pf .fut-kicker { font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+#tab-portfolio .fut-pf .fpf-eq { display: block; margin-top: 2px; font-size: 24px; font-weight: 850; letter-spacing: -0.02em; }
+#tab-portfolio .fut-pf .fut-fund { padding: 4px 9px 4px 4px; border-radius: 12px; background: var(--card2); border: 1px solid var(--border); }
+#tab-portfolio .fut-pf .fut-acct-grid > div { border-radius: 12px; }
+#tab-portfolio .fut-pf .fut-pos { border-radius: 14px; }
+/* Полоса риска позиции дорастает из нуля, когда карточка въехала (интро концепта). */
+#tab-portfolio .fut-pf .fp-risk > i { transform-origin: left center; animation: v3pfRiskIn calc(var(--k) * 600ms) var(--ease) calc(var(--k) * 420ms) backwards; }
+@keyframes v3pfRiskIn { from { transform: scaleX(0); } }
+
+/* ---------------- Лидер и аутсайдер ---------------- */
+
+.v3pf-leaders { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.v3pf-leaders.hidden { display: none; }
+.v3pf-leaders.solo { grid-template-columns: 1fr; }
+.v3pf-leaders.solo .worst { display: none; }
+.v3pf-lead { position: relative; overflow: hidden; min-height: 148px; perspective: 600px; }
+.v3pf-lead.best { border-color: var(--gold-border); background: radial-gradient(170px 120px at 100% 110%, var(--gold-soft), transparent 70%), var(--sheen), var(--card); }
+.v3pf-lead.best::after {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -90px; width: 70px; pointer-events: none;
+  background: linear-gradient(100deg, transparent, rgba(255, 240, 190, 0.16), transparent);
+  transform: skewX(-12deg); animation: v3pfShine calc(var(--k) * 6s) ease-in-out 1.6s infinite;
+}
+@keyframes v3pfShine { 0%, 72% { transform: translateX(0) skewX(-12deg); } 100% { transform: translateX(340px) skewX(-12deg); } }
+.v3pf-lead.worst { background: radial-gradient(170px 120px at 100% 110%, var(--down-dim), transparent 70%), var(--sheen), var(--card); }
+.v3pf-lead-in { position: relative; z-index: 1; transition: transform calc(var(--k) * 320ms) var(--ease), opacity calc(var(--k) * 320ms); transform-origin: 50% 50%; }
+.v3pf-lead.flip .v3pf-lead-in { transform: rotateX(90deg); opacity: 0; }
+.v3pf-lead-k { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); }
+.v3pf-lead-k svg { width: 15px; height: 15px; flex: none; }
+.v3pf-lead.worst .v3pf-lead-k { color: var(--muted); }
+.v3pf-lead-b { display: flex; align-items: center; gap: 9px; margin-top: 12px; min-width: 0; }
+.v3pf-lead-b img { width: 34px; height: 34px; border-radius: 50%; flex: none; }
+.v3pf-lead-b > div { min-width: 0; }
+.v3pf-lead-b b { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 14px; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.v3pf-lead-b span { display: block; font-size: 11.5px; font-weight: 700; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3pf-lead-pct { margin-top: 10px; font-size: 22px; font-weight: 850; letter-spacing: -0.02em; }
+.v3pf-lead-sub { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.v3pf-laurel { position: absolute; z-index: 0; right: 8px; top: 8px; width: 46px; opacity: 0.95; filter: drop-shadow(0 6px 10px rgba(0, 0, 0, 0.35)); animation: v3pfLaurel calc(var(--k) * 4s) ease-in-out infinite; }
+@keyframes v3pfLaurel { 50% { transform: rotate(-6deg) translateY(1px) scale(1.06); } }
+.v3pf-leaders.solo .v3pf-lead-b { padding-right: 56px; }
+
+/* ---------------- Последние операции ---------------- */
+
+.v3pf-acts { display: flex; flex-direction: column; }
+.v3pf-act { display: grid; grid-template-rows: 1fr; transition: grid-template-rows calc(var(--k) * 450ms) var(--ease), opacity calc(var(--k) * 450ms); }
+.v3pf-act.enter { grid-template-rows: 0fr; opacity: 0; }
+.v3pf-act-in { min-height: 0; overflow: hidden; }
+.v3pf-act-row { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 4px; border-radius: 12px; }
+.v3pf-act + .v3pf-act .v3pf-act-row { border-top: 1px solid var(--border); border-radius: 0; }
+.v3pf-act.fresh .v3pf-act-row { animation: v3pfFresh calc(var(--k) * 1.4s) ease-out; }
+@keyframes v3pfFresh { 0%, 30% { background: var(--gold-soft); } }
+.v3pf-act-ico { position: relative; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--card2); border: 1px solid var(--border); }
+.v3pf-act-ico img { width: 28px; height: 28px; border-radius: 50%; }
+.v3pf-act-ico svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.v3pf-act-ico.spin { color: var(--primary-text); background: var(--gold-grad); border-color: transparent; }
+.v3pf-act-ico .bdg { position: absolute; right: -4px; bottom: -4px; width: 17px; height: 17px; border-radius: 50%; display: grid; place-items: center; border: 2px solid var(--card); color: #fff; }
+.v3pf-act-ico .bdg svg { width: 9px; height: 9px; stroke-width: 3.4; }
+.v3pf-act-ico .bdg.buy { background: var(--up); }
+.v3pf-act-ico .bdg.sell { background: var(--down); }
+.v3pf-act-ico .bdg.spin { background: var(--gold-grad); color: var(--primary-text); }
+.v3pf-act-txt { min-width: 0; }
+.v3pf-act-txt b { display: block; font-size: 13.5px; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3pf-act-txt i { display: block; margin-top: 1px; font-style: normal; font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.v3pf-act-amt { font-size: 13.5px; font-weight: 800; white-space: nowrap; }
+.v3pf-act-amt.gold { color: var(--gold); }
+.v3pf-act-amt.up { color: var(--up); }
+
+/* ---------------- Экран «Все активы» ---------------- */
+
+/* ---------------- «Потяни, чтобы обновить» ---------------- */
+
+#tab-portfolio { position: relative; transition: translate 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.1); }
+#tab-portfolio.v3pf-pulling { transition: none; }
+#tab-portfolio > .v3pf-ptr {
+  position: absolute; left: 0; right: 0; top: 0; height: 60px; z-index: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px;
+  pointer-events: none; opacity: 0; animation: none;
+}
+.v3pf-ptr-coin {
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  font-style: normal; font-size: 15px; font-weight: 900; color: var(--primary-text);
+  background: var(--gold-grad);
+  box-shadow: 0 6px 14px -4px rgba(233, 182, 64, 0.75), inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+.v3pf-ptr span { font-size: 11.5px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+.v3pf-ptr.spin .v3pf-ptr-coin { animation: v3pfCoinSpin 0.7s linear infinite; }
+@keyframes v3pfCoinSpin { to { transform: rotateY(360deg); } }
+
+#all-list.v3pf-assets, #scr-assets #all-list { display: flex; flex-direction: column; gap: 6px; }
+
+/* ---------------- Узкие экраны ---------------- */
+
+@media (max-width: 360px) {
+  .v3pf-total { font-size: 33px; }
+  .v3pf-amain { grid-template-columns: 40px minmax(0, 1fr) auto; }
+  .v3pf-logo { width: 40px; height: 40px; }
+  .v3pf-spark { display: none; }
+  .v3pf-tile b { font-size: 13.5px; }
+  .v3pf-chips > button { padding: 0 6px; font-size: 11.5px; }
+  .v3pf-hint { display: none; }
+  #pf-alloc-card .alloc-wrap { flex-direction: column; }
+  #pf-alloc-card .alloc-legend { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #pfc-pulse, .v3pf-laurel, .v3pf-lead.best::after, .v3pf-ptr.spin .v3pf-ptr-coin { animation: none; }
+  #tab-portfolio { transition: none; }
+}
+.v3pf-act-ico.xfer { color: var(--gold); background: var(--gold-soft); border-color: var(--gold-border); }

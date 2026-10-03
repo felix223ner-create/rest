@@ -1,0 +1,304 @@
+/* v3 — слой вкладки «wheel» по concept/wheel.html: экран колеса и выпадение
+   приза. Логика — js/v3-wheel.js (V3W), разметка окна — #modal-spin-prize. */
+
+/* ---------------- Экран колеса ---------------- */
+
+#scr-spin .spin-switch { animation: wrFadeUp calc(var(--k) * 420ms) var(--ease) backwards; }
+#scr-spin .spin-action { animation: wrFadeUp calc(var(--k) * 460ms) var(--ease) calc(var(--k) * 110ms) backwards; }
+@keyframes wrFadeUp { from { opacity: 0; transform: translateY(14px); } }
+
+/* Пока показан приз, колесо уходит в тень. */
+#scr-spin .spin-stage { transition: transform calc(var(--k) * 600ms) var(--ease), filter calc(var(--k) * 600ms); }
+#scr-spin .spin-body.is-deep .spin-stage { transform: scale(0.93); filter: brightness(0.55) saturate(0.7); }
+
+/* Иконка выигравшего сектора «улетает» монетой приза. */
+.spin-sic { transition: opacity calc(var(--k) * 350ms); }
+.spin-sic.gone { opacity: 0; transition: none; }
+
+.spin-pointer.catch { animation: wrPtrCatch calc(var(--k) * 600ms) cubic-bezier(0.2, 0.9, 0.3, 1); }
+@keyframes wrPtrCatch {
+  20% { transform: translateX(-50%) translateY(3px) scale(1.12, 0.9); }
+  55% { transform: translateX(-50%) translateY(-3px) scale(0.96, 1.05); }
+}
+
+/* Обычное колесо без золота: обод и ступица графитовые, как в концепте. */
+.spin-svg.spin-free .spin-rim { stroke: rgba(40, 48, 64, 0.95); }
+.spin-svg.spin-free .spin-core { stroke: rgba(160, 170, 190, 0.6); }
+
+/* Анимации сцены из style.css — с множителем --k, как в концепте.
+   Порядок .tick → .windup → .release → .catch важен: поздние перебивают. */
+#scr-spin .spin-stage { animation: spinStageIn calc(var(--k) * 620ms) cubic-bezier(0.2, 0.78, 0.28, 1) backwards; }
+.spin-stage.is-winding .spin-wheel { transition: transform calc(var(--k) * 340ms) cubic-bezier(0.4, 0, 0.6, 1); }
+.spin-stage.is-landed:not(.is-jackpot) .spin-wheel { animation-duration: calc(var(--k) * 520ms); }
+.spin-stage.is-spinning .spin-bulbs i::after { animation-duration: calc(var(--k) * 640ms); animation-delay: calc(var(--i) * -80ms * var(--k)); }
+.spin-stage.is-spinning.is-slowing .spin-bulbs i::after { animation-duration: calc(var(--k) * 1280ms); animation-delay: calc(var(--i) * -160ms * var(--k)); }
+.spin-stage.is-landed .spin-bulbs i::after { animation: bulbWin calc(var(--k) * 300ms) steps(1) 7, bulbIdle 2.4s ease-in-out 2.1s infinite; }
+.spin-stage.is-landed .spin-bulbs i:nth-child(even)::after { animation-delay: calc(var(--k) * 150ms), 0.9s; }
+.spin-stage.is-jackpot .spin-bulbs i::after { animation: bulbWin 0.22s steps(1) infinite; }
+.spin-stage.is-jackpot .spin-bulbs i:nth-child(even)::after { animation-delay: 0.11s; }
+.spin-win-dim { animation-duration: calc(var(--k) * 400ms); }
+.spin-win-glow { animation-duration: calc(var(--k) * 460ms); }
+.spin-pointer.tick { animation-duration: calc(var(--k) * 360ms); }
+.spin-pointer.windup { animation-duration: calc(var(--k) * 360ms); }
+.spin-pointer.release { animation-duration: calc(var(--k) * 400ms); }
+
+/* Пока колесо в движении, колёсико на кнопке крутится (как .wgo:disabled в концепте). */
+#scr-spin .spin-stage.is-winding ~ .spin-action .spin-action-wheel svg,
+#scr-spin .spin-stage.is-spinning ~ .spin-action .spin-action-wheel svg { animation: wrSpin 1.2s linear infinite; }
+
+.spin-cap { position: relative; transition: box-shadow 0.4s; }
+.spin-cap.wr-caphit { animation: wrCapHit calc(var(--k) * 700ms) var(--spring); }
+@keyframes wrCapHit {
+  25% { transform: scale(1.22); box-shadow: 0 0 0 6px var(--gold-soft), 0 0 22px rgba(233, 182, 64, 0.6); }
+  60% { transform: scale(0.96); }
+}
+
+/* ---------------- Выпадение приза ---------------- */
+
+#modal-spin-prize {
+  --mx: 50%; --my: 40%;
+  --wr-val: #f5c451;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 20px 24px;
+  overflow: hidden;
+}
+:root[data-theme="light"] #modal-spin-prize, :root[data-theme="dawn"] #modal-spin-prize { --wr-val: #a27509; }
+#modal-spin-prize [hidden] { display: none !important; }
+
+#modal-spin-prize .wr-bg {
+  animation: none;
+  opacity: 0;
+  background: radial-gradient(420px 420px at var(--mx) var(--my), rgba(233, 182, 64, 0.2), transparent 70%), rgba(3, 4, 8, 0.72);
+  transition: opacity calc(var(--k) * 500ms);
+}
+#modal-spin-prize.is-miss .wr-bg { background: rgba(3, 4, 8, 0.66); }
+#modal-spin-prize.wr-on .wr-bg { opacity: 1; }
+
+.wr-rays {
+  position: absolute; left: var(--mx); top: var(--my);
+  width: 560px; height: 560px; margin: -280px 0 0 -280px;
+  opacity: 0; pointer-events: none; transform: scale(0.2);
+  transition: opacity calc(var(--k) * 500ms), transform calc(var(--k) * 900ms) var(--ease);
+}
+.wr-rays i {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(255, 214, 110, 0.34) 0deg 5deg, transparent 5deg 22.5deg);
+  -webkit-mask: radial-gradient(circle, #000 12%, rgba(0, 0, 0, 0.5) 38%, transparent 68%);
+  mask: radial-gradient(circle, #000 12%, rgba(0, 0, 0, 0.5) 38%, transparent 68%);
+  animation: wrSpin 20s linear infinite;
+}
+.wr-rays i + i {
+  display: none;
+  background: repeating-conic-gradient(from 11deg, rgba(255, 244, 200, 0.22) 0deg 3deg, transparent 3deg 15deg);
+  animation-direction: reverse; animation-duration: 13s;
+}
+#modal-spin-prize.wr-hit .wr-rays { opacity: 1; transform: scale(1); }
+#modal-spin-prize.is-jackpot .wr-rays i { animation-duration: 9s; }
+#modal-spin-prize.is-jackpot .wr-rays i + i { display: block; }
+#modal-spin-prize.wr-closing .wr-rays { opacity: 0; transform: scale(0.6); }
+@keyframes wrSpin { to { transform: rotate(360deg); } }
+
+.wr-flash, .wr-ring { position: absolute; left: var(--mx); top: var(--my); z-index: 3; border-radius: 50%; pointer-events: none; opacity: 0; }
+.wr-flash { width: 320px; height: 320px; margin: -160px 0 0 -160px; background: radial-gradient(circle, rgba(255, 255, 255, 0.95), rgba(255, 220, 120, 0.55) 30%, transparent 64%); }
+#modal-spin-prize.wr-hit .wr-flash { animation: wrFlash calc(var(--k) * 600ms) ease-out; }
+@keyframes wrFlash { 0% { opacity: 0; transform: scale(0.2); } 18% { opacity: 1; } 100% { opacity: 0; transform: scale(1.5); } }
+.wr-ring { width: 120px; height: 120px; margin: -60px 0 0 -60px; border: 3px solid #ffd974; box-shadow: 0 0 18px rgba(255, 210, 90, 0.7), inset 0 0 18px rgba(255, 210, 90, 0.5); }
+.wr-ring.r2 { border-width: 1.5px; }
+#modal-spin-prize.wr-hit .wr-ring { animation: wrRing calc(var(--k) * 750ms) cubic-bezier(0.1, 0.7, 0.3, 1); }
+#modal-spin-prize.wr-hit .wr-ring.r2 { animation-delay: calc(var(--k) * 120ms); animation-duration: calc(var(--k) * 950ms); }
+@keyframes wrRing { 0% { opacity: 1; transform: scale(0.6); } 100% { opacity: 0; transform: scale(3.4); } }
+
+/* Карточка раскрывается кругом из-под монеты (верх по центру). */
+.wr-card {
+  --d0: 0;
+  position: relative;
+  z-index: 2;
+  width: min(100%, 332px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 64px 18px 16px;
+  border: 1.5px solid rgba(233, 182, 64, 0.46);
+  border-radius: 26px;
+  background: radial-gradient(130% 46% at 50% 0%, var(--gold-soft), transparent 62%), var(--card);
+  box-shadow: 0 26px 60px rgba(0, 0, 0, 0.55), 0 0 44px rgba(233, 182, 64, 0.14);
+  color: var(--text);
+  visibility: hidden;
+  clip-path: circle(0 at 50% 0);
+}
+.wr-card.open { visibility: visible; clip-path: circle(170% at 50% 0); transition: clip-path calc(var(--k) * 700ms) cubic-bezier(0.3, 0.7, 0.2, 1); }
+.wr-card.drop { visibility: visible; clip-path: none; animation: wrCardDrop calc(var(--k) * 750ms) cubic-bezier(0.3, 0.9, 0.3, 1) both; }
+@keyframes wrCardDrop {
+  0% { opacity: 0; transform: translateY(-80px) rotate(-2deg); }
+  55% { opacity: 1; transform: translateY(8px) scale(1.01, 0.97); }
+  78% { transform: translateY(-3px); }
+  100% { transform: none; }
+}
+/* Окно прячется через 360 мс (holdModal в js/v3-wheel.js). */
+.wr-card.closing { visibility: visible; clip-path: none; transform: scale(0.9) translateY(14px); opacity: 0; transition: transform calc(var(--k) * 300ms) ease-in, opacity calc(var(--k) * 300ms) ease-in; }
+#modal-spin-prize.is-miss .wr-card { border-color: var(--border); background: var(--card); box-shadow: 0 26px 60px rgba(0, 0, 0, 0.55); }
+#modal-spin-prize.is-jackpot .wr-card { border-color: #ffd974; box-shadow: 0 26px 60px rgba(0, 0, 0, 0.55), 0 0 60px rgba(255, 200, 80, 0.35); }
+:root[data-theme="light"] .wr-card, :root[data-theme="dawn"] .wr-card { border-color: rgba(185, 138, 21, 0.45); box-shadow: 0 26px 60px rgba(0, 0, 0, 0.35), 0 0 44px rgba(233, 182, 64, 0.18); }
+
+.wr-x {
+  position: absolute; top: 12px; right: 12px;
+  width: 30px; height: 30px; display: grid; place-items: center;
+  border-radius: 50%; border: 1px solid var(--border); background: var(--card2); color: var(--muted);
+  cursor: pointer; transition: transform 0.14s var(--ease);
+}
+.wr-x svg { width: 12px; height: 12px; }
+.wr-x:active { transform: scale(0.9); }
+
+.wr-medal { position: absolute; top: -52px; left: 50%; width: 104px; height: 104px; margin-left: -52px; border-radius: 50%; }
+.wr-medal::before { content: ""; position: absolute; inset: -26px; border-radius: 50%; background: radial-gradient(circle, rgba(255, 214, 110, 0.42), transparent 68%); opacity: 0; }
+#modal-spin-prize.wr-hit .wr-medal::before { opacity: 1; animation: wrHalo 2.4s ease-in-out infinite; transition: opacity 0.4s; }
+@keyframes wrHalo { 50% { transform: scale(1.12); opacity: 0.7; } }
+.wr-miss {
+  position: absolute; inset: 8px; display: none; place-items: center; border-radius: 50%;
+  font-size: 38px; font-weight: 900; color: #98a2b3;
+  background: radial-gradient(120% 120% at 32% 24%, #4a5160, #2a2f3a 55%, #171a21);
+  border: 3px solid #5a6273;
+  box-shadow: 0 12px 26px rgba(0, 0, 0, 0.5), inset 0 2px 6px rgba(255, 255, 255, 0.18);
+}
+#modal-spin-prize.is-miss .wr-miss { display: grid; }
+.wr-miss.shake { animation: wrHeadShake calc(var(--k) * 700ms) ease-in-out; }
+@keyframes wrHeadShake { 15% { transform: rotate(-14deg); } 35% { transform: rotate(11deg); } 55% { transform: rotate(-7deg); } 75% { transform: rotate(3deg); } }
+
+/* Каскад содержимого: --d — задержка элемента, мс. */
+.wr-cz { opacity: 0; }
+.wr-card.go .wr-cz { animation: wrCzIn calc(var(--k) * 500ms) var(--ease) both; animation-delay: calc((var(--d0) + var(--d, 0)) * 1ms * var(--k)); }
+@keyframes wrCzIn { from { opacity: 0; transform: translateY(14px) scale(0.97); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+
+.wr-lbl { display: flex; align-items: center; gap: 8px; font-size: 11.5px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--gold); }
+.wr-card.go .wr-lbl { animation-name: wrTrack; }
+@keyframes wrTrack { from { opacity: 0; letter-spacing: 0.6em; filter: blur(3px); } to { opacity: 1; letter-spacing: 0.14em; filter: none; } }
+.wr-lbl::before, .wr-lbl::after { content: "✦"; font-size: 10px; }
+.wr-lbl:empty { display: none; }
+
+#modal-spin-prize .wr-title { margin: 4px 0 12px; font-size: 26px; font-weight: 900; line-height: 1.1; letter-spacing: 0; text-transform: uppercase; color: var(--text); perspective: 400px; }
+.wr-lt { display: inline-block; opacity: 0; transform-origin: 50% 100%; }
+.wr-card.go .wr-lt { animation: wrLtIn calc(var(--k) * 550ms) var(--spring) both; animation-delay: calc((var(--d0) + 90 + var(--i) * 38) * 1ms * var(--k)); }
+@keyframes wrLtIn { from { opacity: 0; transform: translateY(70%) rotateX(-80deg) scale(0.6); } to { opacity: 1; transform: none; } }
+#modal-spin-prize.is-jackpot .wr-title { font-size: 34px; }
+#modal-spin-prize.is-jackpot .wr-lt {
+  background: linear-gradient(180deg, #fff6cf 0%, #ffd35a 45%, #d48a12 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(90, 50, 0, 0.6)) drop-shadow(0 0 12px rgba(255, 200, 80, 0.5));
+}
+#modal-spin-prize.is-jackpot .wr-card.go .wr-lt {
+  animation: wrLtIn calc(var(--k) * 550ms) var(--spring) both, wrLtHop 1.6s ease-in-out infinite;
+  animation-delay: calc((var(--d0) + 90 + var(--i) * 38) * 1ms * var(--k)), calc(1.4s + var(--i) * 90ms);
+}
+@keyframes wrLtHop { 0%, 60%, 100% { transform: none; } 30% { transform: translateY(-6px) scale(1.06); } }
+#modal-spin-prize.is-miss .wr-title { color: var(--muted); }
+
+.wr-near {
+  display: inline-flex; align-items: center; gap: 7px; margin: -2px 0 12px; padding: 6px 12px 6px 7px;
+  border-radius: 99px; font-size: 12.5px; font-weight: 700; color: var(--muted);
+  background: var(--card2); border: 1px solid var(--border);
+}
+.wr-near img, .wr-near .dl, .wr-chip img, .wr-chip .dl { width: 22px; height: 22px; border-radius: 50%; flex: none; }
+.wr-near .dl, .wr-chip .dl { display: grid; place-items: center; font-size: 12px; font-weight: 900; color: #6b4306; background: radial-gradient(120% 120% at 32% 24%, #ffe88a, #e9b83e 46%, #a86f0e); }
+.wr-near b { color: var(--text); }
+
+.wr-panel {
+  position: relative; width: 100%;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  padding: 14px 12px 12px; border-radius: 18px;
+  border: 1px solid rgba(233, 182, 64, 0.34);
+  background: radial-gradient(90% 120% at 50% 0%, var(--gold-soft), transparent 70%), var(--card2);
+  overflow: hidden;
+}
+.wr-panel::after { content: ""; position: absolute; top: 0; bottom: 0; left: -60%; width: 40%; background: linear-gradient(100deg, transparent, rgba(255, 240, 190, 0.18), transparent); pointer-events: none; }
+.wr-panel.shine::after { animation: wrSweep calc(var(--k) * 900ms) ease-in-out; }
+@keyframes wrSweep { to { left: 130%; } }
+.wr-spark { font-size: 14px; color: var(--gold); text-shadow: 0 0 10px rgba(255, 210, 90, 0.8); animation: wrTwinkle 1.6s ease-in-out infinite; }
+.wr-spark.r { animation-delay: -0.8s; }
+@keyframes wrTwinkle { 50% { opacity: 0.35; transform: scale(0.7) rotate(45deg); } }
+.wr-val { font-size: 40px; font-weight: 900; line-height: 1.12; letter-spacing: -0.02em; color: var(--wr-val); text-shadow: 0 0 22px rgba(245, 196, 81, 0.35); white-space: nowrap; }
+:root[data-theme="light"] .wr-val, :root[data-theme="dawn"] .wr-val { text-shadow: none; }
+.wr-val .odo-d > span { transition-duration: calc(var(--k) * 1050ms); transition-timing-function: cubic-bezier(0.2, 0.85, 0.25, 1); }
+/* Лесенка задержек по цифрам (70 мс) ставится из js/v3-wheel.js. */
+.wr-val.pop { animation: wrValPop calc(var(--k) * 550ms) var(--spring); }
+@keyframes wrValPop { 35% { transform: scale(1.16); text-shadow: 0 0 34px rgba(255, 220, 120, 0.9); } }
+#modal-spin-prize.is-jackpot .wr-val { font-size: 44px; }
+#modal-spin-prize.is-jackpot .wr-val.pop { animation: wrValPop calc(var(--k) * 550ms) var(--spring), wrJackGlow 1.5s ease-in-out 0.6s infinite; }
+@keyframes wrJackGlow { 50% { text-shadow: 0 0 30px rgba(255, 220, 120, 0.9); } }
+
+/* Количество монет — отдельным чипом: длинное число не распирает табло. */
+.wr-chip {
+  display: inline-flex; align-items: center; gap: 7px; max-width: 100%; margin-top: 10px; padding: 5px 12px 5px 5px;
+  border-radius: 99px; font-size: 13.5px; font-weight: 850; color: var(--text);
+  background: var(--card2); border: 1px solid var(--border);
+}
+.wr-chip img, .wr-chip .dl { width: 24px; height: 24px; }
+.wr-chip b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.wr-info { width: 100%; display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 10px 12px; border-radius: 16px; text-align: left; background: var(--card2); border: 1px solid var(--border); }
+.wr-ico { flex: none; width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: var(--gold); background: var(--gold-soft); }
+.wr-ico svg { width: 20px; height: 20px; }
+.wr-card.go .wr-ico { animation: wrIcoBounce calc(var(--k) * 600ms) var(--spring) both; animation-delay: calc((var(--d0) + 560) * 1ms * var(--k)); }
+@keyframes wrIcoBounce { 0% { transform: scale(0) rotate(-30deg); } 100% { transform: none; } }
+#modal-spin-prize.is-miss .wr-ico { color: var(--muted); background: var(--card); }
+.wr-it { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.wr-it span { font-size: 11.5px; line-height: 1.25; color: var(--muted); }
+.wr-it b { font-size: 12.5px; font-weight: 850; letter-spacing: 0.02em; text-transform: uppercase; color: var(--gold); }
+.wr-it b s { margin-right: 4px; color: var(--muted); font-weight: 700; }
+.wr-it b:empty { display: none; }
+#modal-spin-prize.is-miss .wr-it b { color: var(--muted); }
+
+.wr-btn {
+  position: relative; width: 100%; height: 50px;
+  display: flex; align-items: center; justify-content: center; gap: 9px; margin-top: 12px;
+  border-radius: 15px; font: inherit; font-size: 14.5px; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase;
+  overflow: hidden; cursor: pointer; transition: transform 0.14s;
+  -webkit-tap-highlight-color: transparent;
+}
+.wr-btn + .wr-btn { margin-top: 8px; }
+.wr-btn svg { width: 19px; height: 19px; flex: none; }
+.wr-btn:active { transform: scale(0.97); }
+.wr-btn.gold { color: #1b1304; border: 1px solid #ffdc69; background: linear-gradient(104deg, #ffdc70, #f6c247 44%, #d79619); box-shadow: 0 10px 22px rgba(183, 119, 8, 0.28), inset 0 1px rgba(255, 255, 255, 0.52); }
+.wr-btn.gold::after { content: ""; position: absolute; top: 0; bottom: 0; width: 36%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent); animation: wrSweepLoop 3.4s ease-in-out 1.4s infinite; }
+@keyframes wrSweepLoop { 0%, 70% { left: -60%; } 100% { left: 130%; } }
+.wr-btn.dark { color: #edf1f7; border: 1px solid #4a5264; background: linear-gradient(112deg, #4c5a70, #30394b 50%, #202735); }
+#modal-spin-prize.is-miss .wr-btn.gold { color: #edf1f7; border-color: #4a5264; background: linear-gradient(112deg, #5a6882, #3a4458 50%, #262e3e); box-shadow: none; }
+#modal-spin-prize.is-miss .wr-btn.gold::after { display: none; }
+.wr-btn:focus-visible, .wr-x:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+
+/* ---------------- Монета приза и частицы ---------------- */
+
+/* Слои поверх окна приза (z 50), но под тостами и fx-layer. */
+.wr-fx { position: fixed; inset: 0; z-index: 55; width: 100%; height: 100%; pointer-events: none; }
+.wr-tok { position: fixed; left: 0; top: 0; z-index: 56; width: 104px; height: 104px; pointer-events: none; perspective: 700px; will-change: transform; }
+.wr-tok[hidden] { display: none; }
+.wr-tok-3d { position: absolute; inset: 0; transform-style: preserve-3d; }
+/* Две грани и ребро — при перевороте видна толщина монеты. */
+.wr-tf {
+  position: absolute; inset: 0; display: grid; place-items: center; border-radius: 50%;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  font: 900 48px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; color: #6b4306;
+  text-shadow: 0 1px 0 rgba(255, 240, 190, 0.8), 0 -1px 0 rgba(90, 50, 0, 0.4);
+  background: radial-gradient(120% 120% at 32% 24%, #ffe88a 0%, #e9b83e 46%, #a86f0e 100%);
+  border: 4px solid #ffe9a4;
+  box-shadow: inset 0 3px 8px rgba(255, 255, 255, 0.55), inset 0 -6px 10px rgba(120, 70, 4, 0.5), 0 14px 30px rgba(0, 0, 0, 0.45);
+}
+.wr-tf::after { content: ""; position: absolute; inset: 7px; border-radius: 50%; border: 1.5px dashed rgba(120, 72, 6, 0.4); }
+.wr-tf.f { transform: translateZ(5px); }
+.wr-tf.b { transform: rotateY(180deg) translateZ(5px); }
+.wr-tf img { position: relative; z-index: 1; width: 62%; height: 62%; border-radius: 50%; object-fit: contain; box-shadow: 0 0 0 3px rgba(120, 70, 4, 0.35), 0 4px 10px rgba(0, 0, 0, 0.3); }
+.wr-te { position: absolute; left: 50%; top: 5%; width: 10px; height: 90%; margin-left: -5px; border-radius: 5px; background: linear-gradient(90deg, #7a4d08, #ffe08a 50%, #7a4d08); transform: rotateY(90deg); }
+.wr-tok-shine { position: absolute; inset: 0; border-radius: 50%; overflow: hidden; pointer-events: none; }
+.wr-tok-shine::before { content: ""; position: absolute; top: -20%; bottom: -20%; left: -70%; width: 45%; transform: rotate(20deg); background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent); }
+.wr-tok.idle .wr-tok-3d { animation: wrTokFloat 3.2s ease-in-out infinite; }
+.wr-tok.idle .wr-tok-shine::before { animation: wrTokShine 3.2s ease-in-out 0.4s infinite; }
+@keyframes wrTokFloat { 50% { transform: translateY(-5px) rotateY(16deg); } }
+@keyframes wrTokShine { 0%, 55% { left: -70%; } 85%, 100% { left: 130%; } }
+.wr-tok.jack .wr-tf { border-color: #fff3c4; box-shadow: inset 0 3px 8px rgba(255, 255, 255, 0.6), inset 0 -6px 10px rgba(120, 70, 4, 0.5), 0 14px 30px rgba(0, 0, 0, 0.45), 0 0 44px rgba(255, 210, 90, 0.85); }
+.wr-tok.fee .wr-tf { font-size: 40px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wr-cz, .wr-lt { opacity: 1 !important; }
+  .wr-card.closing { opacity: 0; }
+}

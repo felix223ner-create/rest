@@ -1,0 +1,556 @@
+/* ==========================================================================
+   tu-v2-trade — визуал и анимации шита покупки/продажи (рынок + лимит).
+
+   Слой подключается ОТДЕЛЬНЫМ файлом после style.css и не трогает ни
+   разметку, ни тексты, ни логику игры: только оформление существующих
+   элементов и движение. Откат — удалить файл и ссылку на него в
+   index.html (см. .design-backup/trade-sheet-pre-v2-2026-09-12/).
+   Всё движение выключается при prefers-reduced-motion.
+   ========================================================================== */
+
+/* ---------- Сам шит: сторона сделки задаёт акцент ---------- */
+
+.trade-sheet {
+  --tu-side: var(--gold);
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden;
+}
+.trade-sheet[data-tu-side="buy"] { --tu-side: var(--up); }
+.trade-sheet[data-tu-side="sell"] { --tu-side: var(--down); }
+
+/* Мягкое свечение стороны сверху: покупка «дышит» зелёным, продажа —
+   красным. На грани заметности, чтобы шит не превратился в баннер. */
+.trade-sheet::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -120px;
+  width: 320px;
+  height: 200px;
+  margin-left: -160px;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(closest-side,
+    color-mix(in srgb, var(--tu-side) 22%, transparent),
+    color-mix(in srgb, var(--tu-side) 7%, transparent) 58%,
+    transparent 72%);
+  opacity: 0;
+}
+.trade-sheet.tu-tr::after { animation: tuTrGlow 0.7s ease forwards; }
+@keyframes tuTrGlow {
+  0% { opacity: 0; transform: translateY(10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Хват сверху — привычная ручка bottom-sheet. */
+.trade-sheet::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 7px;
+  width: 38px;
+  height: 4px;
+  margin-left: -19px;
+  border-radius: 99px;
+  background: var(--border);
+  opacity: 0.9;
+  z-index: 3;
+}
+
+.trade-sheet > * { position: relative; z-index: 1; }
+
+/* ---------- Каскад появления: блоки въезжают друг за другом ---------- */
+
+.trade-sheet.tu-tr .sheet-head,
+.trade-sheet.tu-tr .sheet-seg,
+.trade-sheet.tu-tr .tr-io,
+.trade-sheet.tu-tr #size-fields,
+.trade-sheet.tu-tr #limit-fields,
+.trade-sheet.tu-tr .tr-details,
+.trade-sheet.tu-tr .confirm-btn,
+.trade-sheet.tu-tr .sheet-hint,
+.trade-sheet.tu-tr .sheet-info {
+  animation: tuTrRise 0.44s cubic-bezier(.2, .7, .3, 1) backwards;
+}
+.trade-sheet.tu-tr .sheet-head { animation-delay: 0.02s; }
+.trade-sheet.tu-tr .sheet-seg { animation-delay: 0.07s; }
+.trade-sheet.tu-tr .tr-io { animation-delay: 0.12s; }
+.trade-sheet.tu-tr #size-fields,
+.trade-sheet.tu-tr #limit-fields { animation-delay: 0.18s; }
+.trade-sheet.tu-tr .tr-details { animation-delay: 0.24s; }
+.trade-sheet.tu-tr .confirm-btn { animation-delay: 0.3s; }
+.trade-sheet.tu-tr .sheet-hint,
+.trade-sheet.tu-tr .sheet-info { animation-delay: 0.36s; }
+@keyframes tuTrRise {
+  0% { opacity: 0; transform: translateY(9px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Эмблема монеты в шапке: тонкое кольцо + короткий «поп». */
+#sheet-ico {
+  box-shadow: 0 0 0 1.5px var(--border),
+              0 4px 12px rgba(0, 0, 0, 0.35);
+}
+.trade-sheet.tu-tr #sheet-ico { animation: tuTrIco 0.5s cubic-bezier(.34, 1.56, .64, 1) 0.06s backwards; }
+@keyframes tuTrIco {
+  0% { opacity: 0; transform: scale(0.7) rotate(-14deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+/* ✕ шита: в части WebView в игровом шрифте нет этого символа и вместо
+   крестика рисуется пустой квадрат — даём системный фолбэк. */
+#sheet-close {
+  font-family: system-ui, -apple-system, "Segoe UI Symbol", "Noto Sans Symbols 2", sans-serif;
+  font-size: 15px;
+  line-height: 1;
+  transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.14s cubic-bezier(.2, .7, .3, 1);
+}
+#sheet-close:hover { color: var(--text); border-color: var(--gold); }
+#sheet-close:active { transform: scale(0.92); }
+
+/* ---------- Сегмент «сейчас / лимит»: блик по золотой таблетке ---------- */
+
+.sheet-seg { overflow: hidden; }
+.seg-indicator {
+  box-shadow: 0 4px 12px rgba(201, 143, 27, 0.26);
+  overflow: hidden;
+}
+.seg-indicator::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 15%, rgba(255, 255, 255, 0.5) 50%, transparent 85%);
+  transform: translateX(-130%);
+  animation: tuTrSheen 4.2s ease-in-out 0.5s infinite;
+}
+@keyframes tuTrSheen {
+  0% { transform: translateX(-130%); }
+  26% { transform: translateX(130%); }
+  100% { transform: translateX(130%); }
+}
+.sheet-seg button { transition: color 0.2s ease, transform 0.14s cubic-bezier(.2, .7, .3, 1); }
+.sheet-seg button:active { transform: scale(0.98); }
+
+/* ---------- Блок «отдаём → получаем» ---------- */
+
+.tr-io {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--card2) 88%, var(--card)),
+    var(--card2));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+.tr-io-arrow {
+  position: relative;
+  z-index: 1;
+  opacity: 0.85;
+  animation: tuTrArrow 2.9s ease-in-out infinite;
+}
+@keyframes tuTrArrow {
+  0%, 62%, 100% { transform: translateX(0); }
+  74% { transform: translateX(3px); }
+  86% { transform: translateX(-1px); }
+}
+/* «Получите» — золотой градиент по цифрам вместо плоского золотого. */
+@supports (-webkit-background-clip: text) {
+  .tr-io-big--out {
+    background: var(--gold-grad);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
+/* Длинные значения («0.00060387 BTC») раньше обрезались троеточием —
+   теперь кегль подстраивается под ширину колонки. Классы ставит JS. */
+.tr-io-big.tu-len-2 { font-size: 20px; }
+.tr-io-big.tu-len-3 { font-size: 17px; letter-spacing: -0.01em; }
+.tr-io-big--out.tu-len-2 { font-size: 18px; }
+.tr-io-big--out.tu-len-3 { font-size: 15.5px; }
+.tr-io-big.tu-len-2 .tr-io-cur,
+.tr-io-big.tu-len-3 .tr-io-cur { font-size: 14px; }
+
+/* Микро-перекат цифры: только когда значение поменял игрок (тап по чипу,
+   ползунок, ввод). От тика цены ничего не мигает. */
+.tu-flip { animation: tuTrFlip 0.34s cubic-bezier(.2, .7, .3, 1); }
+@keyframes tuTrFlip {
+  0% { opacity: 0.45; transform: translateY(-3px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+/* Светлая волна по карточке при пересчёте от действия игрока. */
+.tr-io.tu-sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 30%,
+    color-mix(in srgb, var(--tu-side) 16%, transparent) 50%, transparent 70%);
+  animation: tuTrWave 0.62s ease-out forwards;
+}
+@keyframes tuTrWave {
+  0% { transform: translateX(-100%); opacity: 0; }
+  25% { opacity: 1; }
+  100% { transform: translateX(100%); opacity: 0; }
+}
+
+/* ---------- Поле суммы / лимитной цены ---------- */
+
+.amt-row { transition: border-color 0.18s, box-shadow 0.22s, background 0.18s; }
+.amt-row:focus-within {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--gold) 14%, transparent);
+}
+.amt-row:focus-within .amt-ico { color: var(--gold); border-color: var(--gold); }
+.amt-ico { transition: color 0.18s, border-color 0.18s; }
+.amt-max { padding: 4px 2px; border-radius: 8px; }
+.amt-max:hover { color: color-mix(in srgb, var(--gold) 80%, var(--text)); }
+
+/* ---------- Чипы процентов ---------- */
+
+.pct-chips button { position: relative; overflow: hidden; }
+.pct-chips button::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--gold) 16%, transparent),
+    color-mix(in srgb, var(--gold) 7%, transparent));
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 0.26s cubic-bezier(.2, .7, .3, 1);
+}
+.pct-chips button.active::before { transform: scaleX(1); }
+.pct-chips button > * { position: relative; z-index: 1; }
+.pct-chips button.active { box-shadow: 0 2px 10px color-mix(in srgb, var(--gold) 18%, transparent); }
+.pct-chips button.tu-pop { animation: tuTrPop 0.24s cubic-bezier(.34, 1.56, .64, 1); }
+@keyframes tuTrPop {
+  0% { transform: scale(1); }
+  42% { transform: scale(1.07); }
+  100% { transform: scale(1); }
+}
+
+/* ---------- Ползунок: залитая часть слева показывает выбранную долю ---------- */
+
+.tr-slider-wrap { --tu-sl: 0%; }
+.slider::-webkit-slider-runnable-track {
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--gold) 82%, transparent) 0 var(--tu-sl),
+    var(--card2) var(--tu-sl) 100%);
+  box-shadow: inset 0 0 0 1px var(--border);
+  transition: background 0.12s linear;
+}
+.slider::-moz-range-track {
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--gold) 82%, transparent) 0 var(--tu-sl),
+    var(--card2) var(--tu-sl) 100%);
+}
+.slider::-webkit-slider-thumb {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35),
+              0 0 0 0 color-mix(in srgb, var(--gold) 30%, transparent);
+  transition: box-shadow 0.2s ease, transform 0.16s cubic-bezier(.2, .7, .3, 1);
+}
+.tr-slider-wrap.is-drag .slider::-webkit-slider-thumb {
+  transform: scale(1.1);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4),
+              0 0 0 7px color-mix(in srgb, var(--gold) 16%, transparent);
+}
+.tr-slider-wrap.is-drag .tr-sl-end { color: var(--gold); }
+.tr-sl-end { transition: color 0.2s ease; }
+
+/* ---------- Детали сделки ---------- */
+
+.tr-details { position: relative; overflow: hidden; }
+.tr-det-row + .tr-det-row {
+  border-top: 1px solid color-mix(in srgb, var(--border) 55%, transparent);
+  padding-top: 5px;
+  margin-top: 2px;
+}
+.tr-det-row b { font-variant-numeric: tabular-nums; }
+.tr-det-head { display: flex; align-items: center; gap: 7px; }
+.tr-det-head::before {
+  content: "";
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--tu-side);
+  opacity: 0.85;
+  flex: none;
+}
+/* Итоговая строка «вы получите» — то самое число, за которым игрок пришёл. */
+.tr-det-row b.tr-det-get {
+  font-size: 14px;
+  padding: 1px 7px;
+  margin-right: -4px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--up-bright) 11%, transparent);
+}
+
+/* ---------- Кнопка подтверждения ---------- */
+
+.confirm-btn.up,
+.confirm-btn.down {
+  position: relative;
+  overflow: hidden;
+  border: none;
+  transition: transform 0.14s cubic-bezier(.2, .7, .3, 1), box-shadow 0.2s ease, opacity 0.2s ease;
+}
+.confirm-btn.up {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--up) 78%, #ffffff),
+    var(--up) 46%,
+    color-mix(in srgb, var(--up) 76%, #000000));
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--up) 30%, transparent);
+}
+.confirm-btn.down {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--down) 80%, #ffffff),
+    var(--down) 46%,
+    color-mix(in srgb, var(--down) 78%, #000000));
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--down) 28%, transparent);
+}
+.confirm-btn.up::after,
+.confirm-btn.down::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.28) 50%, transparent 80%);
+  transform: translateX(-130%);
+  animation: tuTrSheen 3.8s ease-in-out 0.8s infinite;
+}
+/* Контент поверх блика ::after. .fx-ripple исключён намеренно: это
+   правило било по position:absolute у ряби (специфичнее), риппл
+   становился элементом потока и РАСПИРАЛ кнопку до размера круга
+   (836px) при каждом зажатии — тот самый «красный квадрат». */
+.confirm-btn.up > *:not(.fx-ripple):not(.cf-done),
+.confirm-btn.down > *:not(.fx-ripple):not(.cf-done) { position: relative; z-index: 1; }
+.confirm-btn:not(:disabled):active { transform: scale(0.985); }
+.confirm-btn:disabled {
+  opacity: 0.42;
+  box-shadow: none;
+  filter: saturate(0.55);
+}
+.confirm-btn:disabled::after { animation: none; opacity: 0; }
+.confirm-btn .confirm-ico img { box-shadow: 0 0 0 1.5px rgba(255, 255, 255, 0.35); }
+/* Короткая вспышка в момент нажатия — подтверждение, что тап дошёл. */
+.confirm-btn.tu-press::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.3);
+  animation: tuTrFlash 0.34s ease-out forwards;
+}
+@keyframes tuTrFlash {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ---------- Лимитный режим ---------- */
+
+/* Строки лимитной секции въезжают каскадом вслед за самой секцией.
+   Контейнерную анимацию limitFieldsIn из style.css гасим: секция +
+   дети одновременно — двойное движение. */
+#limit-fields.lim-anim { animation: none; }
+#limit-fields.lim-anim > * { animation: tuTrRise 0.4s cubic-bezier(.2, .7, .3, 1) backwards; }
+#limit-fields.lim-anim > *:nth-child(1) { animation-delay: 0.04s; }
+#limit-fields.lim-anim > *:nth-child(2) { animation-delay: 0.09s; }
+#limit-fields.lim-anim > *:nth-child(3) { animation-delay: 0.14s; }
+#limit-fields.lim-anim > *:nth-child(4) { animation-delay: 0.19s; }
+#limit-fields.lim-anim > *:nth-child(5) { animation-delay: 0.24s; }
+/* То же для возврата в рыночный режим — переключение симметрично. */
+#size-fields.tu-swap { animation: tuTrRise 0.4s cubic-bezier(.2, .7, .3, 1); }
+#size-fields.tu-swap > * { animation: tuTrRise 0.4s cubic-bezier(.2, .7, .3, 1) backwards; }
+#size-fields.tu-swap > *:nth-child(2) { animation-delay: 0.06s; }
+#size-fields.tu-swap > *:nth-child(3) { animation-delay: 0.11s; }
+#size-fields.tu-swap > *:nth-child(4) { animation-delay: 0.16s; }
+
+/* Текущая цена под полем: тик вверх/вниз коротко подкрашивает цифру. */
+#tr-limit-current { transition: color 0.28s ease; }
+#tr-limit-current.tu-up { color: var(--up); }
+#tr-limit-current.tu-dn { color: var(--down); }
+
+/* Дельта «на сколько лимит отличается от рынка» — таблетка вместо голого текста. */
+.limit-delta.shown {
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: color-mix(in srgb, currentColor 13%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 26%, transparent);
+}
+
+.pct-chips--offset button { position: relative; overflow: hidden; }
+.pct-chips--offset button.active { box-shadow: 0 2px 10px color-mix(in srgb, var(--gold) 16%, transparent); }
+
+.limit-edit-btn { transition: color 0.15s, border-color 0.15s, background 0.15s, transform 0.14s cubic-bezier(.2, .7, .3, 1); }
+
+/* Подсказка «ордер исполнится, когда…»: иконка часов тихо «дышит». */
+.sheet-hint-ico { color: var(--gold); animation: tuTrBreathe 2.6s ease-in-out infinite; }
+@keyframes tuTrBreathe {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.07); }
+}
+.sheet-hint { transition: background 0.2s ease, border-color 0.2s ease; }
+
+/* Блок «как работает лимитный ордер» */
+.sheet-info > summary { transition: color 0.16s ease, background 0.16s ease; }
+.sheet-info[open] .sheet-info-body { animation: tuTrRise 0.34s cubic-bezier(.2, .7, .3, 1); }
+
+/* Плашка скидки на комиссию — мягкий перелив по золоту. */
+.tr-fee-disc { position: relative; overflow: hidden; }
+.tr-fee-disc::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--gold) 18%, transparent) 50%, transparent 70%);
+  transform: translateX(-120%);
+  animation: tuTrSheen 5.6s ease-in-out 1.2s infinite;
+}
+
+/* ---------- Узкие экраны ---------- */
+
+@media (max-width: 380px) {
+  .trade-sheet::after { width: 260px; margin-left: -130px; }
+  .tr-det-row b.tr-det-get { font-size: 13.5px; }
+}
+
+/* ---------- Без анимаций ---------- */
+
+/* ---------- Итог сделки на кнопке ----------
+   После тапа кнопка на полсекунды превращается в «✓ Куплено …»: галочка
+   рисуется, заливка вспыхивает, по краю расходится кольцо. Шит закрывается
+   следом (tradeFinish в main.js). */
+.confirm-btn.is-done,
+.confirm-btn.is-done:disabled { opacity: 1; filter: none; pointer-events: none; }
+.confirm-btn.is-done::after { animation: none; opacity: 0; }
+.cf-done {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 0 14px;
+  border-radius: inherit;
+  color: #fff;
+  background: var(--up);
+  opacity: 0;
+  pointer-events: none;
+}
+.cf-done.down { background: var(--down); }
+.cf-done.gold { background: var(--gold-grad); color: var(--primary-text); }
+.confirm-btn.is-done .cf-done { animation: cfIn 0.34s cubic-bezier(0.2, 0.9, 0.3, 1) forwards; }
+.confirm-btn.is-done .cf-done::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.45), transparent 62%);
+  animation: cfFlash 0.5s ease-out forwards;
+}
+.confirm-btn.is-done { animation: cfRing 0.6s ease-out; }
+.cf-check {
+  flex: none;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.22);
+  animation: cfPop 0.46s cubic-bezier(0.2, 1.6, 0.4, 1) 0.06s backwards;
+}
+.cf-done.gold .cf-check { background: rgba(58, 38, 4, 0.14); }
+.cf-check svg { width: 17px; height: 17px; }
+.cf-check path { stroke-dasharray: 22; stroke-dashoffset: 22; animation: cfDraw 0.32s ease-out 0.16s forwards; }
+.cf-txt { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; line-height: 1.15; }
+.cf-txt b { font-size: 15px; font-weight: 900; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.cf-txt i { font-style: normal; font-size: 12px; font-weight: 800; opacity: 0.9; }
+@keyframes cfIn { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes cfFlash { from { opacity: 1; transform: scale(0.4); } to { opacity: 0; transform: scale(1.6); } }
+@keyframes cfPop { from { transform: scale(0.2) rotate(-40deg); } to { transform: none; } }
+@keyframes cfDraw { to { stroke-dashoffset: 0; } }
+@keyframes cfRing {
+  0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+  100% { box-shadow: 0 0 0 16px rgba(255, 255, 255, 0); }
+}
+
+/* Монета, летящая по дуге (FX.fly). */
+.fx-fly {
+  position: fixed;
+  left: 0; top: 0;
+  border-radius: 50%;
+  background: var(--gold-grad) center/cover no-repeat;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), 0 0 0 1.5px rgba(255, 236, 170, 0.55);
+  pointer-events: none;
+  will-change: transform, opacity;
+}
+
+/* Иконка монеты в шапке ловит прилетевшие монеты. */
+.coin.big.gulp { animation: coinGulp 0.62s cubic-bezier(0.2, 1.5, 0.4, 1); }
+.coin.big.gulp-out { animation: coinGulpOut 0.62s cubic-bezier(0.2, 1.5, 0.4, 1); }
+@keyframes coinGulp {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(47, 190, 110, 0.7); }
+  28% { transform: scale(1.22); }
+  60% { transform: scale(0.94); box-shadow: 0 0 0 14px rgba(47, 190, 110, 0); }
+  100% { transform: none; }
+}
+@keyframes coinGulpOut {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(233, 182, 64, 0.7); }
+  30% { transform: scale(0.82) rotate(-8deg); }
+  65% { transform: scale(1.08) rotate(4deg); box-shadow: 0 0 0 14px rgba(233, 182, 64, 0); }
+  100% { transform: none; }
+}
+/* Сумма сделки вылетает из иконки монеты вправо-вверх плашкой: поверх цены
+   голый текст не читался. */
+.fx-float.fx-float--pill {
+  padding: 5px 11px;
+  border-radius: 99px;
+  font-size: 14px;
+  font-weight: 900;
+  color: #fff;
+  background: var(--up);
+  text-shadow: none;
+  box-shadow: 0 8px 20px -6px rgba(0, 0, 0, 0.6);
+  animation: fxPill 1.25s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+.fx-float.fx-float--pill.down { background: var(--down); }
+@keyframes fxPill {
+  0% { opacity: 0; transform: translate(var(--x), var(--y)) translate(-50%, -50%) scale(0.3); }
+  22% { opacity: 1; transform: translate(calc(var(--x) + 70px), calc(var(--y) - 22px)) translate(-50%, -50%) scale(1.08); }
+  38% { transform: translate(calc(var(--x) + 76px), calc(var(--y) - 26px)) translate(-50%, -50%) scale(1); }
+  78% { opacity: 1; }
+  100% { opacity: 0; transform: translate(calc(var(--x) + 84px), calc(var(--y) - 50px)) translate(-50%, -50%) scale(0.96); }
+}
+#desk-tabs .desk-badge.bump { animation: deskBump 0.5s cubic-bezier(0.2, 1.8, 0.4, 1); }
+@keyframes deskBump { 0% { transform: scale(0.5); } 60% { transform: scale(1.35); } 100% { transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .trade-sheet.tu-tr::after,
+  .trade-sheet.tu-tr .sheet-head,
+  .trade-sheet.tu-tr .sheet-seg,
+  .trade-sheet.tu-tr .tr-io,
+  .trade-sheet.tu-tr #size-fields,
+  .trade-sheet.tu-tr #limit-fields,
+  .trade-sheet.tu-tr .tr-details,
+  .trade-sheet.tu-tr .confirm-btn,
+  .trade-sheet.tu-tr .sheet-hint,
+  .trade-sheet.tu-tr .sheet-info,
+  .trade-sheet.tu-tr #sheet-ico,
+  #limit-fields.lim-anim > *,
+  #size-fields.tu-swap,
+  #size-fields.tu-swap > * {
+    animation: none;
+  }
+  .trade-sheet::after { opacity: 1; }
+  .seg-indicator::after,
+  .confirm-btn.up::after,
+  .confirm-btn.down::after,
+  .tr-fee-disc::after,
+  .tr-io-arrow,
+  .sheet-hint-ico {
+    animation: none;
+  }
+  .tr-io.tu-sweep::after { display: none; }
+  .tu-flip { animation: none; }
+  .confirm-btn.is-done, .confirm-btn.is-done .cf-done, .confirm-btn.is-done .cf-done::before,
+  .cf-check, .cf-check path, .coin.big.gulp, .coin.big.gulp-out, #desk-tabs .desk-badge.bump { animation: none; }
+  .cf-check path { stroke-dashoffset: 0; }
+  .confirm-btn.is-done .cf-done { opacity: 1; }
+}

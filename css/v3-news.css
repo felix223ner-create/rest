@@ -1,0 +1,500 @@
+/* v3 — экран «Новости рынка» (#scr-news) по concept/news.html.
+   Все классы с префиксом nw-: старые правила ленты в style.css (news-item,
+   nv-pulse и т.д.) остались без разметки и ни на что не влияют.
+   Длительности — через --k (reduced motion гасит их в v3-base.css). */
+
+@property --nw-ang { syntax: '<angle>'; inherits: false; initial-value: 0deg; }
+
+#scr-news {
+  --hot: #ff9f43;
+  --nw-bar: color-mix(in srgb, var(--bg) 86%, transparent);
+  --slide: cubic-bezier(0.3, 1.25, 0.5, 1);
+  position: relative;
+  isolation: isolate;
+  background: var(--glow), var(--bg);
+}
+:root[data-theme="light"] #scr-news { --hot: #c25e0a; }
+#scr-news [hidden] { display: none !important; }
+#scr-news .mono { font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.nw-tug-l .up, .nw-hs-r b.up, .nw-x-coins b.up, .nw-x-stats b.up { color: var(--up); }
+.nw-tug-l .down, .nw-hs-r b.down, .nw-x-coins b.down, .nw-x-stats b.down { color: var(--down); }
+.nw-defs { position: absolute; width: 0; height: 0; }
+#nwgUp stop { stop-color: var(--up); }
+#nwgDown stop { stop-color: var(--down); }
+
+/* ---------------- Шапка ---------------- */
+
+#scr-news .nw-top { position: relative; z-index: 12; }
+#scr-news .nw-top.nw-jolt { animation: nwShake calc(var(--k) * 500ms) ease-in-out; }
+.nw-tt b { font-size: 17px; font-weight: 800; letter-spacing: 0.01em; }
+.nw-tt i {
+  display: inline-flex; align-items: center; gap: 6px; margin-top: 1px;
+  font-size: 12px; font-style: normal; font-weight: 600; color: var(--muted);
+  transition: color 0.3s;
+}
+.nw-tt i.has { color: var(--gold); font-weight: 800; }
+#scr-news .nw-readall { position: relative; overflow: visible; color: var(--text); }
+.nw-readall:disabled { opacity: 0.45; cursor: default; }
+.nw-badge {
+  position: absolute; top: -6px; right: -6px; min-width: 19px; height: 19px; padding: 0 5px;
+  border-radius: 99px; display: grid; place-items: center;
+  font-size: 11px; font-style: normal; font-weight: 900; color: var(--primary-text);
+  background: var(--gold-grad); box-shadow: 0 0 0 2px var(--bg);
+  transform: scale(0); transition: transform calc(var(--k) * 350ms) var(--spring);
+}
+.nw-badge.show { transform: none; }
+.nw-badge.bump { animation: nwBump calc(var(--k) * 500ms) var(--spring); }
+.nw-prog { position: absolute; left: 14px; right: 14px; bottom: -1px; height: 2px; border-radius: 2px; overflow: hidden; pointer-events: none; }
+.nw-prog i { display: block; width: 0; height: 100%; border-radius: inherit; background: var(--gold-grad); box-shadow: 0 0 8px rgba(233, 182, 64, 0.7); }
+
+/* ---------------- Прокрутка ---------------- */
+
+#scr-news #news-body {
+  position: relative; flex: 1; min-height: 0;
+  overflow-y: auto; overflow-x: hidden; overflow-anchor: none; overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  padding: 4px 12px calc(26px + env(safe-area-inset-bottom));
+}
+#scr-news #news-body::-webkit-scrollbar { display: none; }
+.nw-page { display: flex; flex-direction: column; gap: 12px; transition: transform calc(var(--k) * 450ms) cubic-bezier(0.2, 0.9, 0.3, 1.1); }
+.nw-page.pulling { transition: none; }
+.nw-page.go .nw-rv { animation: nwRvIn calc(var(--k) * 720ms) var(--ease) calc(var(--k) * var(--d, 0) * 1ms) backwards; }
+#scr-news .v3-live::after { animation-name: nwLivePing; }
+.nw-k2 { display: block; font-size: 10.5px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+
+/* ---------------- Потяни, чтобы обновить ---------------- */
+
+.nw-ptr { position: absolute; left: 0; right: 0; top: 2px; height: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; pointer-events: none; opacity: 0; }
+.nw-ptr-ico { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; color: var(--primary-text); background: var(--gold-grad); box-shadow: 0 6px 14px -4px rgba(233, 182, 64, 0.75); }
+.nw-ptr-ico svg { width: 17px; height: 17px; }
+.nw-ptr span { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.nw-ptr.spin .nw-ptr-ico { animation: nwSpin 0.8s linear infinite; }
+
+/* ---------------- Пульс рынка ---------------- */
+
+#scr-news .nw-pulse {
+  padding: 14px 14px 12px; overflow: hidden; border-color: var(--gold-border);
+  background: radial-gradient(280px 170px at 0% -20%, var(--gold-soft), transparent 70%), var(--sheen), var(--card);
+}
+.nw-pl-top { display: flex; align-items: center; gap: 10px; }
+.nw-lchip {
+  display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 8px;
+  border-radius: 99px; font-size: 10.5px; font-weight: 900; letter-spacing: 0.08em;
+  color: var(--up); background: var(--up-dim);
+}
+.nw-pl-t { flex: 1; min-width: 0; }
+.nw-pl-t b { display: block; font-size: 16px; font-weight: 850; }
+.nw-pl-t i { display: block; font-size: 11.5px; font-style: normal; font-weight: 600; color: var(--muted); }
+.nw-tug { margin-top: 12px; }
+.nw-tug-l { display: flex; justify-content: space-between; font-size: 12px; font-weight: 850; }
+.nw-tug-l b { font-size: 15px; }
+.nw-tug-bar { position: relative; height: 10px; margin-top: 6px; border-radius: 99px; background: linear-gradient(90deg, color-mix(in srgb, var(--down) 70%, transparent), var(--down)); }
+.nw-tug-u {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 50%; border-radius: 99px 0 0 99px;
+  background: linear-gradient(90deg, var(--up), color-mix(in srgb, var(--up) 75%, transparent));
+  transition: width calc(var(--k) * 900ms) var(--slide);
+}
+.nw-tug-k {
+  position: absolute; top: 50%; left: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px;
+  border-radius: 50%; background: #fff; border: 3px solid var(--card);
+  box-shadow: 0 0 0 1px var(--border), 0 4px 10px rgba(0, 0, 0, 0.4);
+  transition: left calc(var(--k) * 900ms) var(--slide);
+}
+.nw-tug-k::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--text) 50%, transparent); opacity: 0; }
+.nw-tug-k.nudge::after { animation: nwKnob calc(var(--k) * 800ms) ease-out; }
+.nw-tug-m { margin-top: 7px; text-align: center; font-size: 11px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); transition: color 0.4s; }
+.nw-tug-m.up { color: var(--up); }
+.nw-tug-m.down { color: var(--down); }
+.nw-tl-h { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
+.nw-tl { position: relative; display: flex; gap: 3px; height: 62px; margin-top: 6px; }
+.nw-tl::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 1px; background: var(--border); }
+.nw-tc { position: relative; flex: 1; height: 100%; padding: 0; border: 0; border-radius: 5px; background: none; cursor: pointer; transition: background-color 0.2s; }
+.nw-tc:hover, .nw-tc.sel { background: var(--track); }
+.nw-tc:disabled { cursor: default; }
+.nw-tc:disabled:hover { background: none; }
+.nw-tc .u, .nw-tc .d {
+  position: absolute; left: 0; right: 0; height: 0;
+  transition: height calc(var(--k) * 600ms) var(--spring);
+  transition-delay: calc(var(--i) * var(--st, 0ms) * var(--k));
+}
+.nw-tc .u { bottom: 50%; border-radius: 3px 3px 1px 1px; background: var(--up); }
+.nw-tc .d { top: 50%; border-radius: 1px 1px 3px 3px; background: var(--down); }
+.nw-tc .u.hot { box-shadow: 0 0 10px var(--up); }
+.nw-tc .d.hot { box-shadow: 0 0 10px var(--down); }
+.nw-tc .z { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: var(--muted); opacity: 0; transition: opacity 0.3s; }
+.nw-tc .z.on { opacity: 0.8; }
+.nw-tc.now::after { content: ""; position: absolute; inset: -2px; border-radius: 6px; border: 1.5px solid var(--gold); opacity: 0.8; animation: nwNowCol calc(var(--k) * 1.6s) ease-in-out infinite; pointer-events: none; }
+.nw-tc.grow .u, .nw-tc.grow .d { animation: nwColGrow calc(var(--k) * 600ms) var(--spring); }
+.nw-tl-ax { display: flex; justify-content: space-between; margin-top: 4px; font-size: 10px; font-weight: 700; color: var(--muted); }
+.nw-tl-tip {
+  position: absolute; bottom: calc(100% + 6px); left: 50%; z-index: 3; padding: 5px 9px; border-radius: 9px;
+  font-size: 11.5px; font-weight: 800; white-space: nowrap; color: var(--card); background: var(--text);
+  transform: translateX(-50%); pointer-events: none; animation: nwTipIn calc(var(--k) * 250ms) var(--ease);
+}
+.nw-pl-s { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.nw-ps { padding: 8px 10px; border-radius: 13px; background: var(--card2); border: 1px solid var(--border); }
+.nw-ps b { display: block; margin-top: 2px; font-size: 18px; font-weight: 850; }
+.nw-ps.hot b { color: var(--hot); }
+.nw-ps.gold b { color: var(--gold); }
+
+/* ---------------- Главное за час ---------------- */
+
+.nw-hero-h { display: flex; align-items: center; justify-content: space-between; padding: 0 2px; }
+.nw-hdots { display: flex; gap: 5px; }
+.nw-hdot { position: relative; width: 18px; height: 4px; padding: 0; border: 0; border-radius: 99px; background: var(--track); overflow: hidden; cursor: pointer; transition: width calc(var(--k) * 350ms) var(--ease); }
+.nw-hdot.on { width: 30px; }
+.nw-hdot i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; border-radius: inherit; background: var(--gold); }
+/* Автолистание по animationend: без анимации (reduced) карусель стоит. */
+.nw-hdot.on i { animation: nwFillDot calc(var(--k) * 6s) linear forwards; }
+.nw-hdots.hold .nw-hdot.on i { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .nw-hdot.on i { animation: none; width: 100%; } }
+.nw-htrack { position: relative; display: flex; gap: 10px; margin: 8px -12px 0; padding: 0 12px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 12px; scrollbar-width: none; }
+.nw-htrack::-webkit-scrollbar { display: none; }
+.nw-htrack.swap .nw-hs { animation: nwHsIn calc(var(--k) * 550ms) var(--ease) both; }
+.nw-hs {
+  --dc: var(--up); --db: var(--up-dim);
+  position: relative; flex: 0 0 100%; min-height: 172px; scroll-snap-align: start;
+  display: block; padding: 14px; border-radius: 20px; overflow: hidden;
+  font: inherit; text-align: left; color: var(--text); cursor: pointer;
+  border: 1px solid var(--border);
+  background: radial-gradient(260px 170px at 100% 0%, var(--db), transparent 70%), var(--sheen), var(--card);
+  box-shadow: var(--card-shadow);
+  transition: transform 0.16s var(--ease);
+}
+.nw-hs.down { --dc: var(--down); --db: var(--down-dim); }
+.nw-hs.flat { --dc: var(--muted); --db: var(--track); }
+.nw-hs:active { transform: scale(0.985); }
+/* Взрыв цены: рамка-градиент бежит по кругу. */
+.nw-hs.ext {
+  border-color: transparent;
+  background:
+    radial-gradient(260px 170px at 100% 0%, var(--db), transparent 70%) padding-box,
+    linear-gradient(var(--card), var(--card)) padding-box,
+    conic-gradient(from var(--nw-ang), var(--dc), var(--gold), transparent 35%, transparent 65%, var(--dc)) border-box;
+  animation: nwAng calc(var(--k) * 4s) linear infinite;
+}
+.nw-hs-bg { position: absolute; right: -18px; bottom: -22px; width: 130px; height: 130px; color: var(--dc); opacity: 0.08; pointer-events: none; }
+.nw-hs-bg svg { width: 100%; height: 100%; }
+.nw-hs-top { position: relative; display: flex; align-items: center; gap: 8px; }
+.nw-hs-k {
+  display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 99px;
+  font-size: 10.5px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--primary-text); background: var(--gold-grad);
+}
+.nw-hs.ext .nw-hs-k { color: #fff; background: linear-gradient(135deg, var(--hot), var(--dc)); }
+.nw-hs-time { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.nw-hs-coin { position: relative; display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.nw-hs-coin img, .nw-hs-coin .nw-mk { flex: none; width: 26px; height: 26px; border-radius: 50%; }
+.nw-hs-coin .nw-mk { font-size: 14px; }
+.nw-hs-coin b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 850; }
+.nw-hs-coin i { flex: none; white-space: nowrap; font-size: 12px; font-style: normal; font-weight: 700; color: var(--muted); }
+.nw-hs-title { position: relative; display: -webkit-box; margin-top: 6px; font-size: 17px; font-weight: 850; line-height: 1.25; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.nw-hs-bot { position: relative; display: flex; align-items: flex-end; gap: 12px; margin-top: 10px; }
+.nw-hs-bot svg { flex: 1; min-width: 0; height: 44px; overflow: visible; }
+.nw-hs-bot .l { fill: none; stroke: var(--dc); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; vector-effect: non-scaling-stroke; }
+.nw-hs-bot .a { fill: var(--db); }
+.nw-hs-bot .m { stroke: var(--gold); stroke-width: 1.3; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; }
+.nw-hs-r { flex: none; text-align: right; }
+.nw-hs-r b { display: block; font-size: 22px; font-weight: 900; }
+.nw-hs-r b.flat { color: var(--muted); }
+.nw-hs-r i { display: block; font-size: 11px; font-style: normal; font-weight: 700; color: var(--muted); }
+
+/* ---------------- Фильтры ---------------- */
+
+.nw-tools {
+  position: sticky; top: -4px; z-index: 8; margin: 0 -12px; padding: 8px 12px;
+  background: var(--nw-bar);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+.nw-tools.stuck { border-bottom-color: var(--border); box-shadow: 0 12px 24px -18px rgba(0, 0, 0, 0.8); }
+/* id news-filter остался от старой ленты — перебиваем её правила из style.css. */
+#scr-news #news-filter.nw-seg { border-radius: 16px; background: var(--card); }
+#scr-news #news-filter.nw-seg > i {
+  box-shadow: 0 6px 14px -6px rgba(233, 182, 64, 0.85);
+  transition: transform calc(var(--k) * 460ms) var(--slide), width calc(var(--k) * 460ms) var(--slide);
+}
+#scr-news .nw-seg > button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 6px; font-size: 14px; white-space: nowrap; }
+.nw-seg em, .nw-chip em {
+  min-width: 20px; padding: 1px 6px; border-radius: 99px;
+  font-size: 11px; font-style: normal; text-align: center;
+  background: var(--card2); color: var(--muted);
+  transition: background-color 0.25s, color 0.25s;
+}
+.nw-seg > button.on em, .nw-chip.on em { background: rgba(34, 23, 3, 0.16); color: var(--primary-text); }
+.nw-seg em.bump, .nw-chip em.bump, .nw-sh em.bump { animation: nwBump calc(var(--k) * 450ms) var(--spring); }
+.nw-chips { position: relative; display: flex; gap: 6px; margin: 8px -12px 0; padding: 0 12px; overflow-x: auto; scrollbar-width: none; }
+.nw-chips::-webkit-scrollbar { display: none; }
+.nw-chip {
+  position: relative; z-index: 1; flex: none; height: 32px;
+  display: inline-flex; align-items: center; gap: 6px; padding: 0 8px 0 7px;
+  border-radius: 99px; border: 1px solid var(--border); background: none;
+  font: inherit; font-size: 12.5px; font-weight: 800; color: var(--muted); white-space: nowrap; cursor: pointer;
+  transition: color 0.3s, border-color 0.3s;
+}
+.nw-chip svg { width: 15px; height: 15px; }
+.nw-chip em { min-width: 18px; padding: 0 5px; font-size: 10.5px; }
+.nw-chip.on { color: var(--primary-text); border-color: transparent; }
+.nw-chip.in { animation: nwChipIn calc(var(--k) * 450ms) var(--ease) both; animation-delay: calc(var(--i) * 30ms * var(--k)); }
+.nw-cind {
+  position: absolute; z-index: 0; top: 0; left: 0; height: 32px; width: 0; border-radius: 99px;
+  background: var(--gold-grad); box-shadow: 0 6px 16px -7px rgba(233, 182, 64, 0.9);
+  transition: transform calc(var(--k) * 500ms) var(--slide), width calc(var(--k) * 500ms) var(--slide);
+}
+
+/* «↑ N новых» — всплывает, если читают ниже начала ленты. */
+.nw-newp-wrap { position: sticky; z-index: 9; top: 96px; height: 0; }
+.nw-newp {
+  position: absolute; left: 50%; top: 6px; display: inline-flex; align-items: center; gap: 7px;
+  height: 34px; padding: 0 13px 0 7px; border: 0; border-radius: 99px;
+  font: inherit; font-size: 12.5px; font-weight: 850; color: var(--primary-text); white-space: nowrap; cursor: pointer;
+  background: var(--gold-grad);
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.6), 0 6px 16px -6px rgba(233, 182, 64, 0.8);
+  opacity: 0; pointer-events: none; transform: translate(-50%, -18px) scale(0.8);
+  transition: transform calc(var(--k) * 450ms) var(--spring), opacity 0.25s;
+}
+.nw-newp.show { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
+.nw-newp.bump { animation: nwNewpBump calc(var(--k) * 450ms) var(--spring); }
+.nw-newp svg { width: 14px; height: 14px; }
+.nw-avs { display: inline-flex; }
+.nw-avs img { width: 22px; height: 22px; border-radius: 50%; box-shadow: 0 0 0 2px var(--card); }
+.nw-avs img + img { margin-left: -8px; }
+.nw-newp .nw-avs img { box-shadow: 0 0 0 2px #e9b640; }
+
+/* ---------------- Лента ---------------- */
+
+.nw-feed { position: relative; }
+.nw-sh { display: flex; align-items: center; gap: 8px; padding: 12px 4px 8px; font-size: 11px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.nw-sh:first-child { padding-top: 4px; }
+.nw-sh em { min-width: 20px; padding: 1px 6px; border-radius: 99px; font-style: normal; letter-spacing: 0; text-align: center; color: var(--text); background: var(--card); border: 1px solid var(--border); }
+.nw-sh::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--border), transparent); }
+.nw-sh.now { color: var(--gold); }
+.nw-sh.now::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 10px var(--gold); animation: nwNowCol calc(var(--k) * 1.4s) ease-in-out infinite; }
+
+.nw-c {
+  --dc: var(--up); --db: var(--up-dim);
+  position: relative; margin-bottom: 8px; padding: 11px 12px 10px 13px;
+  border-radius: 18px; color: var(--text);
+  background: var(--sheen), var(--card); border: 1px solid var(--border);
+  cursor: pointer; overflow: hidden; outline: none;
+  transition: border-color 0.3s, box-shadow 0.3s, transform 0.16s var(--ease);
+}
+.nw-c.down { --dc: var(--down); --db: var(--down-dim); }
+.nw-c.flat { --dc: var(--muted); --db: var(--track); }
+.nw-c::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 3px; border-radius: 0 3px 3px 0; background: var(--dc); opacity: 0.85; }
+.nw-c:hover { border-color: var(--gold-border); }
+.nw-c:active { transform: scale(0.99); }
+.nw-c:focus-visible { box-shadow: 0 0 0 2px var(--gold); }
+.nw-c.ghost { position: absolute; left: 0; margin: 0; pointer-events: none; }
+.nw-c-row { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 11px; align-items: start; }
+.nw-c-main { min-width: 0; }
+.nw-logo { position: relative; width: 42px; height: 42px; margin-top: 1px; border-radius: 50%; background: var(--coin-bg, var(--card2)); box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px var(--db); }
+.nw-logo img { width: 100%; height: 100%; border-radius: 50%; display: block; }
+.nw-mk { display: grid; place-items: center; font-size: 20px; font-weight: 900; color: var(--primary-text); background: var(--gold-grad); border-radius: 50%; }
+.nw-logo .nw-mk { width: 100%; height: 100%; }
+.nw-dir { position: absolute; right: -4px; bottom: -4px; width: 18px; height: 18px; border-radius: 50%; display: grid; place-items: center; color: #fff; background: var(--dc); box-shadow: 0 0 0 2px var(--card); }
+.nw-dir svg { width: 10px; height: 10px; }
+/* Точка непрочитанного вместо «NEW»: гаснет, когда новость увидели. */
+.nw-dot {
+  position: absolute; left: -3px; top: -3px; width: 11px; height: 11px; border-radius: 50%;
+  background: var(--gold); box-shadow: 0 0 0 2px var(--card), 0 0 10px var(--gold);
+  transition: transform calc(var(--k) * 400ms) var(--spring), opacity calc(var(--k) * 300ms);
+}
+.nw-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--gold); animation: nwLivePing calc(var(--k) * 1.6s) ease-out infinite; }
+.nw-c.read .nw-dot { transform: scale(0); opacity: 0; }
+.nw-c.read .nw-dot::after { animation: none; }
+.nw-c-top { display: flex; align-items: baseline; gap: 6px; min-width: 0; white-space: nowrap; }
+.nw-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 14px; font-weight: 800; }
+.nw-tk { flex: none; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.nw-fl { flex: none; display: inline-flex; gap: 3px; align-self: center; color: var(--gold); }
+.nw-fl svg { width: 12px; height: 12px; display: block; }
+.nw-fl .st { animation: nwBump calc(var(--k) * 450ms) var(--spring); }
+.nw-time { flex: none; margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.nw-title { display: -webkit-box; margin: 3px 0 0; font-size: 14.5px; font-weight: 700; line-height: 1.3; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.nw-c.open .nw-title { -webkit-line-clamp: unset; }
+.nw-meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; min-width: 0; }
+.nw-cat {
+  display: inline-flex; align-items: center; gap: 4px; min-width: 0; height: 22px; padding: 0 8px 0 6px;
+  border-radius: 8px; font-size: 11px; font-weight: 800; white-space: nowrap; overflow: hidden;
+  color: var(--muted); background: var(--card2); border: 1px solid var(--border);
+}
+.nw-cat span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.nw-cat svg { flex: none; width: 13px; height: 13px; }
+.nw-imp, .nw-xb, .nw-rx, .nw-c .nw-avs { flex: none; }
+.nw-xb { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 8px; font-size: 11px; font-weight: 900; white-space: nowrap; color: #fff; background: linear-gradient(135deg, var(--hot), var(--dc)); }
+.nw-imp { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; }
+.nw-imp b { width: 3px; border-radius: 1px; background: var(--track); }
+.nw-imp b:nth-child(1) { height: 5px; }
+.nw-imp b:nth-child(2) { height: 8px; }
+.nw-imp b:nth-child(3) { height: 12px; }
+.nw-imp b.on { background: var(--gold); }
+.nw-imp.i3 b.on { background: var(--hot); box-shadow: 0 0 6px var(--hot); }
+.nw-rx {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 7px 0 6px;
+  border-radius: 8px; font-size: 12px; font-weight: 850; white-space: nowrap;
+  color: var(--up); background: var(--up-dim); transition: color 0.4s, background-color 0.4s;
+}
+.nw-rx.down { color: var(--down); background: var(--down-dim); }
+.nw-rx.flat { color: var(--muted); background: var(--card2); }
+.nw-rx svg { width: 30px; height: 14px; overflow: visible; }
+.nw-rx em { font-style: normal; }
+.nw-rx path { fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 40; }
+.nw-rx circle { fill: currentColor; }
+.nw-rx.tick { animation: nwRxTick calc(var(--k) * 500ms) ease-out; }
+.nw-c .nw-avs img { width: 20px; height: 20px; }
+.nw-c.ext {
+  border-color: transparent;
+  background:
+    linear-gradient(var(--card), var(--card)) padding-box,
+    conic-gradient(from var(--nw-ang), var(--dc), var(--gold), transparent 35%, transparent 65%, var(--dc)) border-box;
+  animation: nwAng calc(var(--k) * 4s) linear infinite;
+}
+.nw-c.ext .nw-logo { box-shadow: 0 0 0 2px var(--card), 0 0 0 3.5px var(--dc), 0 0 18px var(--dc); }
+.nw-c.open { border-color: var(--gold-border); box-shadow: 0 14px 30px -16px rgba(0, 0, 0, 0.7); }
+.nw-c.arrive { animation: nwArrive calc(var(--k) * 700ms) var(--spring) both; }
+.nw-c.arrive::after, .nw-c.flash::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(100deg, transparent 20%, var(--gold-soft) 45%, rgba(255, 230, 160, 0.22) 50%, var(--gold-soft) 55%, transparent 80%);
+  animation: nwSweep calc(var(--k) * 1.1s) ease-out calc(var(--k) * 150ms) both;
+}
+.nw-c.flash { animation: nwFlashB calc(var(--k) * 1.4s) ease-out; }
+.nw-c.shake { animation: nwArrive calc(var(--k) * 700ms) var(--spring) both, nwShake calc(var(--k) * 500ms) ease-in-out calc(var(--k) * 500ms); }
+
+/* ---------------- Раскрытая новость ---------------- */
+
+.nw-more { height: 0; overflow: hidden; transition: height calc(var(--k) * 450ms) var(--ease); }
+.nw-x { padding-top: 12px; cursor: default; }
+.nw-x-chart { position: relative; height: 118px; margin: 0 -4px; }
+.nw-x-chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.nw-x-zero { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 4; opacity: 0.45; }
+.nw-x-mark { stroke: var(--gold); stroke-width: 1.4; stroke-dasharray: 4 3; }
+.nw-x-line { fill: none; stroke: var(--up); stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; transition: stroke 0.4s; }
+.nw-x-area { fill: url(#nwgUp); }
+.nw-x-chart.down .nw-x-line { stroke: var(--down); }
+.nw-x-chart.down .nw-x-area { fill: url(#nwgDown); }
+.nw-x-chart.flat .nw-x-line { stroke: var(--muted); }
+.nw-x-chart.flat .nw-x-area { fill: none; }
+.nw-x-dot { fill: var(--up); stroke: var(--card); stroke-width: 2.5; }
+.nw-x-ring { fill: var(--up); opacity: 0.35; transform-box: fill-box; transform-origin: center; animation: nwRing calc(var(--k) * 1.8s) ease-out infinite; }
+.nw-x-chart.down .nw-x-dot, .nw-x-chart.down .nw-x-ring { fill: var(--down); }
+.nw-x-chart.flat .nw-x-dot, .nw-x-chart.flat .nw-x-ring { fill: var(--muted); }
+.nw-x-tag { position: absolute; top: -2px; padding: 2px 7px; border-radius: 7px; font-size: 10.5px; font-weight: 900; color: var(--primary-text); background: var(--gold-grad); transform: translateX(-50%); white-space: nowrap; }
+.nw-x-y { position: absolute; right: 4px; font-size: 10px; font-weight: 800; color: var(--muted); transform: translateY(-50%); }
+.nw-x-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.nw-x-stats > div { padding: 8px 10px; border-radius: 12px; background: var(--card2); border: 1px solid var(--border); font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.nw-x-stats b { display: block; margin-top: 3px; font-size: 15px; font-weight: 850; letter-spacing: -0.01em; text-transform: none; color: var(--text); }
+.nw-x-stats b.up { color: var(--up); }
+.nw-x-stats b.down { color: var(--down); }
+.nw-x-stats i { display: block; margin-top: 1px; font-size: 10.5px; font-style: normal; font-weight: 700; letter-spacing: 0; text-transform: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.nw-x-hint { display: flex; align-items: flex-start; gap: 10px; margin-top: 8px; padding: 10px 12px; border-radius: 14px; background: var(--gold-soft); border: 1px solid var(--gold-border); font-size: 12.5px; font-weight: 600; line-height: 1.4; color: var(--text); }
+.nw-x-hint svg { flex: none; width: 18px; height: 18px; margin-top: 1px; color: var(--gold); }
+.nw-x-hint b { display: block; font-size: 10.5px; font-weight: 850; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); }
+.nw-x-coins { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.nw-x-coins span { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 9px 0 4px; border-radius: 99px; font-size: 12px; font-weight: 850; background: var(--card2); border: 1px solid var(--border); }
+.nw-x-coins img { width: 20px; height: 20px; border-radius: 50%; }
+.nw-x-coins b.flat { color: var(--muted); }
+.nw-x-act { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.nw-x-act.one { grid-template-columns: 1fr; }
+.nw-x-btn {
+  position: relative; height: 42px; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  border-radius: 13px; font: inherit; font-size: 13.5px; font-weight: 850; color: var(--text); cursor: pointer;
+  border: 1px solid var(--border); background: var(--card2); overflow: hidden;
+  transition: transform 0.14s, border-color 0.2s, color 0.2s;
+}
+.nw-x-btn svg { width: 16px; height: 16px; }
+.nw-x-btn:active { transform: scale(0.96); }
+.nw-x-btn.gold { color: var(--primary-text); border-color: transparent; background: var(--gold-grad); box-shadow: 0 8px 18px -10px rgba(233, 182, 64, 0.9); }
+.nw-x-btn.on { color: var(--gold); border-color: var(--gold-border); background: var(--gold-soft); }
+.nw-x-btn.on svg { fill: currentColor; }
+.nw-x-btn.pop svg { animation: nwStarPop calc(var(--k) * 550ms) var(--spring); }
+
+/* ---------------- Пусто и конец ленты ---------------- */
+
+.nw-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 26px 18px 22px; border-radius: 20px; text-align: center; background: var(--card); border: 1px dashed var(--border); }
+.nw-empty > * { animation: v3RvIn calc(var(--k) * 500ms) var(--ease) both; }
+.nw-empty > :nth-child(2) { animation-delay: calc(var(--k) * 70ms); }
+.nw-empty > :nth-child(3) { animation-delay: calc(var(--k) * 130ms); }
+.nw-empty > :nth-child(4) { animation-delay: calc(var(--k) * 190ms); }
+.nw-radar {
+  position: relative; width: 84px; height: 84px; margin-bottom: 8px; border-radius: 50%; overflow: hidden;
+  border: 1.5px solid var(--border);
+  background: radial-gradient(circle, transparent 30%, var(--border) 31%, transparent 32%, transparent 62%, var(--border) 63%, transparent 64%);
+}
+.nw-radar::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(from 0deg, transparent 70%, rgba(233, 182, 64, 0.45)); animation: nwSpin calc(var(--k) * 2.4s) linear infinite; }
+.nw-radar i { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: var(--gold); box-shadow: 0 0 8px var(--gold); animation: nwBlip calc(var(--k) * 2.4s) ease-out infinite; }
+.nw-empty b { font-size: 16px; font-weight: 850; }
+.nw-empty span { max-width: 280px; font-size: 13px; line-height: 1.45; color: var(--muted); }
+.nw-empty button { margin-top: 10px; height: 38px; padding: 0 16px; border-radius: 12px; border: 1px solid var(--gold-border); font: inherit; font-size: 13px; font-weight: 850; color: var(--gold); background: var(--gold-soft); cursor: pointer; }
+.nw-end { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 6px 0 2px; }
+.nw-end span { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); opacity: 0.6; }
+.nw-end:empty { display: none; }
+.nw-more-btn {
+  display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 16px; border-radius: 12px;
+  font: inherit; font-size: 13px; font-weight: 850; color: var(--gold); cursor: pointer;
+  border: 1px solid var(--gold-border); background: var(--gold-soft);
+  transition: transform 0.14s;
+}
+.nw-more-btn:active { transform: scale(0.96); }
+.nw-more-btn svg { width: 15px; height: 15px; }
+
+/* ---------------- Срочно: баннер взрыва цены и вспышка по краям ---------------- */
+
+.nw-brk {
+  position: absolute; left: 10px; right: 10px; top: 60px; z-index: 40;
+  display: flex; align-items: center; gap: 10px; padding: 9px 12px 11px 9px;
+  border: 0; border-radius: 16px; font: inherit; color: #fff; text-align: left; cursor: pointer;
+  background: linear-gradient(100deg, #8f1d17, #e0463a 50%, #8f1d17);
+  box-shadow: 0 18px 36px -14px rgba(0, 0, 0, 0.7), 0 0 30px -6px rgba(240, 82, 79, 0.6);
+  overflow: hidden; opacity: 0; pointer-events: none; transform: translateY(-40px) scale(0.92);
+  transition: transform calc(var(--k) * 500ms) var(--spring), opacity calc(var(--k) * 300ms);
+}
+.nw-brk.up { background: linear-gradient(100deg, #125f36, #2fbe6e 50%, #125f36); box-shadow: 0 18px 36px -14px rgba(0, 0, 0, 0.7), 0 0 30px -6px rgba(47, 190, 110, 0.6); }
+.nw-brk.on { opacity: 1; pointer-events: auto; transform: none; }
+.nw-brk::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, rgba(255, 255, 255, 0.07) 0 10px, transparent 10px 20px); background-size: 28px 28px; animation: nwStripes calc(var(--k) * 800ms) linear infinite; pointer-events: none; }
+.nw-brk > * { position: relative; }
+.nw-brk-k { flex: none; display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px; border-radius: 8px; font-size: 11px; font-weight: 900; letter-spacing: 0.08em; color: #8f1d17; background: #fff; animation: nwBrkPulse calc(var(--k) * 900ms) ease-in-out infinite; }
+.nw-brk.up .nw-brk-k { color: #125f36; }
+.nw-brk img, .nw-brk .nw-mk { flex: none; width: 30px; height: 30px; border-radius: 50%; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.8); }
+.nw-brk-t { flex: 1; min-width: 0; font-size: 13px; font-weight: 800; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.nw-brk-t b { display: block; font-size: 11.5px; font-weight: 900; opacity: 0.85; }
+.nw-brk-life { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; background: rgba(255, 255, 255, 0.8); transform-origin: left; }
+.nw-brk.on .nw-brk-life { animation: nwLife calc(var(--k) * 5.5s) linear forwards; }
+/* Как в концепте — вспышка поверх всего, баннер тоже подсвечивается. */
+.nw-edge { position: absolute; inset: 0; z-index: 41; pointer-events: none; opacity: 0; }
+.nw-edge.up { box-shadow: inset 0 0 80px rgba(47, 190, 110, 0.6); animation: nwEdgeF calc(var(--k) * 1.1s) ease-out; }
+.nw-edge.down { box-shadow: inset 0 0 80px rgba(240, 82, 79, 0.6); animation: nwEdgeF calc(var(--k) * 1.1s) ease-out; }
+
+@media (max-width: 360px) {
+  #scr-news .nw-seg > button { font-size: 13px; }
+  .nw-hs-title { font-size: 15.5px; }
+  .nw-title { font-size: 13.5px; }
+}
+
+/* ---------------- Ключевые кадры ---------------- */
+
+@keyframes nwBump { 40% { transform: scale(1.35); } }
+@keyframes nwRvIn { from { opacity: 0; transform: translateY(24px) scale(0.975); } to { opacity: 1; transform: none; } }
+@keyframes nwLivePing { from { transform: scale(1); opacity: 0.7; } to { transform: scale(3.2); opacity: 0; } }
+@keyframes nwKnob { from { opacity: 1; transform: scale(0.6); } to { opacity: 0; transform: scale(1.8); } }
+@keyframes nwNowCol { 50% { opacity: 0.25; } }
+@keyframes nwColGrow { 40% { filter: brightness(1.8); transform: scaleX(1.5); } }
+@keyframes nwTipIn { from { opacity: 0; transform: translate(-50%, 4px); } }
+@keyframes nwFillDot { to { width: 100%; } }
+@keyframes nwHsIn { from { opacity: 0; transform: translateX(40px) scale(0.96); } }
+@keyframes nwAng { to { --nw-ang: 360deg; } }
+@keyframes nwChipIn { from { opacity: 0; transform: translateX(22px) scale(0.9); } }
+@keyframes nwNewpBump { 40% { transform: translate(-50%, 0) scale(1.1); } }
+@keyframes nwRxTick { 30% { filter: brightness(1.6); } }
+@keyframes nwArrive { from { opacity: 0; transform: translateY(-18px) scale(0.94); } }
+@keyframes nwSweep { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+@keyframes nwFlashB { 0%, 40% { border-color: var(--gold); box-shadow: 0 0 0 4px var(--gold-soft); } }
+@keyframes nwShake { 20% { transform: translateX(-5px) rotate(-0.6deg); } 40% { transform: translateX(4px) rotate(0.5deg); } 60% { transform: translateX(-3px); } 80% { transform: translateX(2px); } }
+@keyframes nwRing { from { transform: scale(1); opacity: 0.45; } to { transform: scale(3.4); opacity: 0; } }
+@keyframes nwStarPop { 0% { transform: scale(0.3) rotate(-50deg); } 60% { transform: scale(1.35) rotate(12deg); } }
+@keyframes nwSpin { to { transform: rotate(360deg); } }
+@keyframes nwBlip { 0%, 60% { opacity: 0; } 70% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes nwStripes { to { background-position: 28px 0; } }
+@keyframes nwBrkPulse { 50% { transform: scale(1.08); } }
+@keyframes nwLife { to { transform: scaleX(0); } }
+@keyframes nwEdgeF { 20% { opacity: 1; } 100% { opacity: 0; } }

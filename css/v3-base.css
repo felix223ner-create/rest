@@ -1,0 +1,188 @@
+/* v3 — общий фундамент редизайна по концептам из concept/*.html.
+   Токены, базовые карточки, шапка, таббар, каскад появления, одометр,
+   общие ключевые кадры. Слои вкладок (v3-lobby.css и т.д.) строятся на нём.
+   --k — множитель длительности анимаций (0 при reduced motion). */
+
+:root {
+  --k: 1;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --spring: cubic-bezier(0.34, 1.5, 0.55, 1);
+}
+:root, :root[data-theme="dark"], :root[data-theme="dawn"], :root[data-theme="carbon"], :root[data-theme="ash"] {
+  --blue: #4da3ff; --blue-dim: rgba(77, 163, 255, 0.14);
+  --violet: #b678f0; --violet-dim: rgba(182, 120, 240, 0.15);
+  --track: rgba(152, 162, 179, 0.16);
+  --hair: rgba(255, 255, 255, 0.05);
+  --glow: radial-gradient(900px 420px at 50% -8%, rgba(233, 182, 64, 0.08), transparent 60%);
+  --card-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.8);
+  --sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.028), transparent 42%);
+}
+:root[data-theme="dawn"] { --glow: radial-gradient(900px 420px at 50% -8%, rgba(255, 140, 120, 0.12), transparent 60%); }
+:root[data-theme="carbon"] { --glow: radial-gradient(900px 420px at 50% -8%, rgba(200, 205, 215, 0.07), transparent 60%); }
+:root[data-theme="ash"] { --glow: radial-gradient(900px 420px at 50% -8%, rgba(255, 150, 90, 0.09), transparent 60%); }
+:root[data-theme="light"] {
+  --blue: #2f7fd6; --blue-dim: rgba(47, 127, 214, 0.12);
+  --violet: #8a4fd0; --violet-dim: rgba(138, 79, 208, 0.12);
+  --track: rgba(28, 25, 19, 0.09);
+  --hair: rgba(28, 25, 19, 0.05);
+  --glow: radial-gradient(900px 420px at 50% -8%, rgba(201, 143, 27, 0.1), transparent 60%);
+  --card-shadow: 0 10px 26px -16px rgba(28, 25, 19, 0.28);
+  --sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.7), transparent 42%);
+}
+:root[data-theme="midnight"] {
+  --blue: #4da3ff; --blue-dim: rgba(77, 163, 255, 0.14);
+  --violet: #b678f0; --violet-dim: rgba(182, 120, 240, 0.15);
+  --track: rgba(139, 150, 179, 0.16);
+  --hair: rgba(255, 255, 255, 0.05);
+  --glow: radial-gradient(900px 420px at 50% -8%, rgba(77, 163, 255, 0.1), transparent 60%);
+  --card-shadow: 0 10px 30px -18px rgba(0, 0, 0, 0.85);
+  --sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.028), transparent 42%);
+}
+@media (prefers-reduced-motion: reduce) { :root { --k: 0.001; } }
+
+/* ---------------- Каркас ---------------- */
+
+#app-main { background: var(--glow); }
+.topbar #hdr-title { font-size: 17px; letter-spacing: 0.01em; }
+.topbar .icon-btn { border-radius: 13px; transition: transform 0.14s var(--ease), border-color 0.2s; }
+.topbar .icon-btn:active { transform: scale(0.9); }
+#btn-settings svg { transition: transform 0.6s var(--spring); }
+#btn-settings:hover svg { transform: rotate(60deg); }
+#pages { padding: 4px 12px 22px; }
+.tab-page { gap: 12px; }
+
+/* Базовая карточка концепта: блик сверху и мягкая тень. */
+.card {
+  background: var(--sheen), var(--card);
+  box-shadow: var(--card-shadow);
+  border-radius: 22px;
+}
+
+/* Каскад появления вкладки: как .rv в концептах. */
+.tab-page > * { animation: v3RvIn calc(var(--k) * 640ms) var(--ease) backwards; }
+.tab-page > *:nth-child(1) { animation-delay: calc(var(--k) * 0ms); }
+.tab-page > *:nth-child(2) { animation-delay: calc(var(--k) * 70ms); }
+.tab-page > *:nth-child(3) { animation-delay: calc(var(--k) * 140ms); }
+.tab-page > *:nth-child(4) { animation-delay: calc(var(--k) * 210ms); }
+.tab-page > *:nth-child(5) { animation-delay: calc(var(--k) * 280ms); }
+.tab-page > *:nth-child(n+6) { animation-delay: calc(var(--k) * 350ms); }
+.v3-rv { animation: v3RvIn calc(var(--k) * 640ms) var(--ease) calc(var(--k) * var(--d, 0) * 1ms) backwards; }
+
+/* ---------------- Таббар ---------------- */
+
+.tabbar { background: var(--card); position: relative; z-index: 5; }
+.tabbar button { position: relative; font-size: 11px; font-weight: 700; }
+.tabbar img.tab-ico { width: 26px; height: 26px; transition: transform 0.35s var(--spring), opacity 0.2s, filter 0.2s; }
+.tabbar button:active img.tab-ico { transform: scale(0.85); }
+.tabbar button.active img.tab-ico {
+  background: none; box-shadow: none; padding: 0;
+  transform: translateY(-1px) scale(1.08);
+}
+.tabbar button.active::before {
+  content: ""; position: absolute; top: -1px; left: 50%;
+  width: 28px; height: 3px; margin-left: -14px;
+  border-radius: 0 0 3px 3px;
+  background: var(--gold-grad);
+  box-shadow: 0 0 14px rgba(233, 182, 64, 0.75);
+  animation: v3TabInk calc(var(--k) * 420ms) var(--spring) both;
+}
+.tabbar button.v3-catch img.tab-ico { animation: v3Bump calc(var(--k) * 560ms) var(--spring); }
+
+/* ---------------- Общие элементы ---------------- */
+
+.v3-kicker { font-size: 11px; font-weight: 800; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); }
+.v3-live { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--up); position: relative; flex: none; }
+.v3-live::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: inherit; animation: v3LivePing calc(var(--k) * 1.8s) ease-out infinite; }
+.v3-link { margin-left: auto; display: inline-flex; align-items: center; gap: 3px; font-size: 12.5px; font-weight: 800; color: var(--gold); padding: 6px 2px; background: none; border: 0; cursor: pointer; }
+.v3-link .chev { font-size: 17px; line-height: 1; transition: transform 0.2s var(--ease); }
+.v3-link:hover .chev { transform: translateX(2px); }
+.v3-bar { position: relative; height: 6px; border-radius: 99px; background: var(--track); overflow: hidden; }
+.v3-bar > u {
+  position: absolute; left: 0; top: 0; bottom: 0; width: var(--w, 0%);
+  border-radius: inherit; background: var(--gold-grad);
+  transition: width calc(var(--k) * 900ms) cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.v3-bar > u::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  transform: translateX(-100%);
+  animation: v3BarShine calc(var(--k) * 2.8s) ease-in-out 1s infinite;
+}
+.v3-chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 3px 9px; border-radius: 99px;
+  font-size: 12px; font-weight: 800; white-space: nowrap;
+  background: var(--track); color: var(--muted);
+}
+.v3-chip.up { background: var(--up-dim); color: var(--up); }
+.v3-chip.down { background: var(--down-dim); color: var(--down); }
+.v3-chip.gold { background: var(--gold-soft); color: var(--gold); }
+.v3-chip svg { width: 12px; height: 12px; }
+/* Сегмент-переключатель с золотой «таблеткой». */
+.v3-seg { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; padding: 4px; border-radius: 16px; background: var(--card2); border: 1px solid var(--border); }
+.v3-seg > button { position: relative; z-index: 1; padding: 9px 6px; border: 0; background: none; font: inherit; font-size: 13.5px; font-weight: 800; color: var(--muted); cursor: pointer; transition: color 0.25s; }
+.v3-seg > button.on { color: var(--primary-text); }
+.v3-seg > i { position: absolute; z-index: 0; top: 4px; bottom: 4px; left: 4px; border-radius: 12px; background: var(--gold-grad); box-shadow: 0 6px 18px -8px rgba(233, 182, 64, 0.8); transition: transform calc(var(--k) * 420ms) var(--spring), width calc(var(--k) * 420ms) var(--spring); }
+/* Таблетка сама встаёт под .on: ширина по числу кнопок, сдвиг по индексу.
+   Слой может переопределить width/transform инлайном. */
+.v3-seg:has(> button:nth-of-type(2):last-of-type) > i { width: calc((100% - 8px) / 2); }
+.v3-seg:has(> button:nth-of-type(3):last-of-type) > i { width: calc((100% - 8px) / 3); }
+.v3-seg:has(> button:nth-of-type(4):last-of-type) > i { width: calc((100% - 8px) / 4); }
+.v3-seg:has(> button:nth-of-type(5):last-of-type) > i { width: calc((100% - 8px) / 5); }
+.v3-seg:has(> button.on:nth-of-type(2)) > i { transform: translateX(100%); }
+.v3-seg:has(> button.on:nth-of-type(3)) > i { transform: translateX(200%); }
+.v3-seg:has(> button.on:nth-of-type(4)) > i { transform: translateX(300%); }
+.v3-seg:has(> button.on:nth-of-type(5)) > i { transform: translateX(400%); }
+.v3-float {
+  position: fixed; z-index: 9000; font-size: 20px; font-weight: 900; color: var(--gold);
+  pointer-events: none; white-space: nowrap; text-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+  animation: v3FloatUp calc(var(--k) * 1300ms) cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+.v3-shine { position: relative; overflow: hidden; }
+.v3-shine::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.45) 50%, transparent 65%);
+  transform: translateX(-100%);
+  animation: v3PillShine calc(var(--k) * 4.2s) ease-in-out 2.2s infinite;
+}
+
+/* ---------------- Одометр (V3.odo) ---------------- */
+
+.odo { display: inline-flex; align-items: flex-start; line-height: 1; }
+.odo-d { position: relative; display: inline-block; height: 1em; overflow: hidden; }
+.odo-d > span { display: flex; flex-direction: column; transition: transform calc(var(--k) * 700ms) cubic-bezier(0.25, 0.9, 0.3, 1.05); }
+.odo-d > span > i { display: block; height: 1em; font-style: normal; text-align: center; }
+.odo-c { display: inline-block; }
+.odo-c.sp { width: 0.22em; }
+.odo .cents { opacity: 0.5; }
+.v3-fl-up, .v3-fl-down { transition: color 0.2s; }
+.v3-fl-up { animation: v3FlUp calc(var(--k) * 650ms) ease-out; }
+.v3-fl-down { animation: v3FlDown calc(var(--k) * 650ms) ease-out; }
+/* Вспышка только изменившихся цифр (V3.flashText). */
+.v3-fd { display: inline; }
+.v3-fd.up { color: var(--up); }
+.v3-fd.down { color: var(--down); }
+
+/* ---------------- Кольцо обратного отсчёта (V3.ring) ---------------- */
+
+.v3-ring { width: 100%; height: 100%; transform: rotate(-90deg); overflow: visible; }
+.v3-ring circle { fill: none; stroke-width: 3; }
+.v3-ring .t { stroke: var(--track); }
+.v3-ring .p { stroke: var(--gold); stroke-linecap: round; transition: stroke-dashoffset 0.9s linear; }
+
+/* ---------------- Ключевые кадры ---------------- */
+
+@keyframes v3RvIn { from { opacity: 0; transform: translateY(18px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes v3Bump { 0% { transform: scale(1); } 35% { transform: scale(1.22); } 100% { transform: scale(1); } }
+@keyframes v3TabInk { from { transform: scaleX(0); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes v3LivePing { 0% { transform: scale(1); opacity: 0.7; } 100% { transform: scale(2.8); opacity: 0; } }
+@keyframes v3BarShine { 0% { transform: translateX(-100%); } 60%, 100% { transform: translateX(100%); } }
+@keyframes v3PillShine { 0% { transform: translateX(-100%); } 30%, 100% { transform: translateX(100%); } }
+@keyframes v3FloatUp { 0% { opacity: 0; transform: translate(-50%, 8px) scale(0.7); } 18% { opacity: 1; transform: translate(-50%, -4px) scale(1.08); } 70% { opacity: 1; transform: translate(-50%, -22px) scale(1); } 100% { opacity: 0; transform: translate(-50%, -34px); } }
+@keyframes v3FlUp { 0%, 40% { color: var(--up); text-shadow: 0 0 18px color-mix(in srgb, var(--up) 45%, transparent); } 100% { text-shadow: none; } }
+@keyframes v3FlDown { 0%, 40% { color: var(--down); text-shadow: 0 0 18px color-mix(in srgb, var(--down) 45%, transparent); } 100% { text-shadow: none; } }
+@keyframes v3Pop { 0% { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.08); opacity: 1; } 100% { transform: none; } }
+@keyframes v3SparkPing { 0% { transform: scale(0.6); opacity: 0.9; } 100% { transform: scale(2.4); opacity: 0; } }
+@keyframes v3Stamp { 0% { transform: scale(1.8) rotate(-12deg); opacity: 0; } 60% { transform: scale(0.92) rotate(3deg); opacity: 1; } 100% { transform: none; opacity: 1; } }
+@keyframes v3Shake { 0%, 100% { transform: none; } 20% { transform: translateX(-5px); } 40% { transform: translateX(5px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
+@keyframes v3GlowBreath { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
